@@ -66,6 +66,7 @@
         <div id="chartContainer">
             <h2>Data Analysis</h2>
             <canvas id="dataChart"></canvas>
+            <p id="stats"></p>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -79,15 +80,16 @@
                     const parsedData = parseCSV(csvData);
                     displayTable(parsedData);
                     createChart(parsedData);
+                    calculateStats(parsedData);
                 };
                 reader.readAsText(file);
             }
         });
 
         function parseCSV(data) {
-            const rows = data.split('\n');
+            const rows = data.split('\n').filter(row => row.trim() !== '');
             const headers = rows[0].split(',');
-            const content = rows.slice(1).map(row => row.split(','));
+            const content = rows.slice(1).map(row => row.split(',').map(cell => cell.trim()));
             return { headers, content };
         }
 
@@ -107,7 +109,7 @@
             const values = content.map(row => parseFloat(row[1])).slice(0, 10);
 
             new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
@@ -126,11 +128,30 @@
                         },
                         title: {
                             display: true,
-                            text: 'Data Overview'
+                            text: 'Data Analysis - Line Chart'
                         }
                     }
                 }
             });
+        }
+
+        function calculateStats(parsedData) {
+            const { headers, content } = parsedData;
+            const times = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+            const sum = times.reduce((a, b) => a + b, 0);
+            const mean = (sum / times.length).toFixed(2);
+            const min = Math.min(...times).toFixed(2);
+            const max = Math.max(...times).toFixed(2);
+            const stdDev = Math.sqrt(times.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / times.length).toFixed(2);
+
+            document.getElementById('stats').innerHTML = `
+                <strong>Statistical Analysis:</strong><br>
+                Mean: ${mean}<br>
+                Min: ${min}<br>
+                Max: ${max}<br>
+                Standard Deviation: ${stdDev}
+            `;
         }
     </script>
 </body>

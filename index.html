@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Data Analysis</title>
+    <title>Análise Interativa de Dados</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -49,22 +49,22 @@
 </head>
 <body>
     <header>
-        <h1>Interactive Data Analysis</h1>
+        <h1>Análise Interativa de Dados</h1>
     </header>
     <main>
         <div class="controls">
-            <label for="fileInput">Upload CSV File:</label>
+            <label for="fileInput">Carregar arquivo CSV:</label>
             <input type="file" id="fileInput" accept=".csv">
         </div>
         <div id="tableContainer">
-            <h2>Data Preview</h2>
+            <h2>Prévia dos Dados</h2>
             <table id="dataTable">
                 <thead></thead>
                 <tbody></tbody>
             </table>
         </div>
         <div id="chartContainer">
-            <h2>Data Analysis</h2>
+            <h2>Análise de Dados</h2>
             <canvas id="dataChart"></canvas>
             <p id="stats"></p>
         </div>
@@ -79,9 +79,10 @@
                     const csvData = e.target.result;
                     const parsedData = parseCSV(csvData);
                     if (parsedData.content.length > 0) {
-                        displayTable(parsedData);
-                        createChart(parsedData);
-                        calculateStats(parsedData);
+                        const filteredData = filterOutliers(parsedData);
+                        displayTable(filteredData);
+                        createChart(filteredData);
+                        calculateStats(filteredData);
                     }
                 };
                 reader.readAsText(file);
@@ -97,6 +98,23 @@
             return { headers, content };
         }
 
+        function filterOutliers(parsedData) {
+            const { content } = parsedData;
+            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+            const lowerBound = mean - 2 * stdDev;
+            const upperBound = mean + 2 * stdDev;
+
+            const filteredContent = content.filter(row => {
+                const value = parseFloat(row[1]);
+                return !isNaN(value) && value >= lowerBound && value <= upperBound;
+            });
+
+            return { headers: parsedData.headers, content: filteredContent };
+        }
+
         function displayTable(parsedData) {
             const { headers, content } = parsedData;
             const tableHead = document.querySelector('#dataTable thead');
@@ -109,22 +127,24 @@
         function createChart(parsedData) {
             const { headers, content } = parsedData;
             const ctx = document.getElementById('dataChart').getContext('2d');
-            const labels = content.map(row => row[0]).slice(0, 10);
-            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val)).slice(0, 10);
+            const labels = content.map(row => row[0]);
+            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
             if (window.chartInstance) {
                 window.chartInstance.destroy();
             }
 
+            const total = values.reduce((a, b) => a + b, 0);
+            const percentages = values.map(value => ((value / total) * 100).toFixed(2));
+
             window.chartInstance = new Chart(ctx, {
-                type: 'line',
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: headers[1],
-                        data: values,
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
+                        label: 'Representatividade (%)',
+                        data: percentages,
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
                         borderWidth: 1
                     }]
                 },
@@ -136,7 +156,7 @@
                         },
                         title: {
                             display: true,
-                            text: 'Data Analysis - Line Chart'
+                            text: 'Representatividade Total dos Itens'
                         }
                     }
                 }
@@ -145,24 +165,25 @@
 
         function calculateStats(parsedData) {
             const { content } = parsedData;
-            const times = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
-            if (times.length > 0) {
-                const sum = times.reduce((a, b) => a + b, 0);
-                const mean = (sum / times.length).toFixed(2);
-                const min = Math.min(...times).toFixed(2);
-                const max = Math.max(...times).toFixed(2);
-                const stdDev = Math.sqrt(times.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / times.length).toFixed(2);
+            if (values.length > 0) {
+                const sum = values.reduce((a, b) => a + b, 0);
+                const mean = (sum / values.length).toFixed(2);
+                const min = Math.min(...values).toFixed(2);
+                const max = Math.max(...values).toFixed(2);
+                const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
 
                 document.getElementById('stats').innerHTML = `
-                    <strong>Statistical Analysis:</strong><br>
-                    Mean: ${mean}<br>
-                    Min: ${min}<br>
-                    Max: ${max}<br>
-                    Standard Deviation: ${stdDev}
+                    <strong>Análise Estatística:</strong><br>
+                    Média: ${mean}<br>
+                    Mínimo: ${min}<br>
+                    Máximo: ${max}<br>
+                    Desvio Padrão: ${stdDev}<br>
+                    <small>Os dados considerados estão dentro de 2 desvios padrão da média.</small>
                 `;
             } else {
-                document.getElementById('stats').innerHTML = '<strong>No valid data for analysis.</strong>';
+                document.getElementById('stats').innerHTML = '<strong>Sem dados válidos para análise.</strong>';
             }
         }
     </script>

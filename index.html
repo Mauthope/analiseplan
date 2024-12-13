@@ -133,7 +133,7 @@
             const mean = values.reduce((a, b) => a + b, 0) / values.length;
             const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
             const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
-                                      .reduce((a, b) => a + b, 0) / values.length;
+                                      .reduce((a, b) => a + b, 0) / values.filter(value => value >= mean - stdDev && value <= mean + stdDev).length;
 
             if (window.chartInstance) {
                 window.chartInstance.destroy();
@@ -218,23 +218,13 @@
                 const mean = (sum / values.length).toFixed(2);
                 const min = Math.min(...values).toFixed(2);
                 const max = Math.max(...values).toFixed(2);
-                const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
-                const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
-                                          .reduce((a, b) => a + b, 0) / values.length;
+                const statsText = `Estatísticas:\nMédia: ${mean}\nValor Mínimo: ${min}\nValor Máximo: ${max}`;
 
-                document.getElementById('stats').innerHTML = `
-                    <strong>Análise Estatística:</strong><br>
-                    Média Geral: ${mean}<br>
-                    Média Limitada (1 DP): ${boundedMean.toFixed(2)}<br>
-                    Valor Mínimo: ${min}<br>
-                    Valor Máximo: ${max}<br>
-                    Desvio Padrão: ${stdDev}
-                `;
+                document.getElementById('stats').innerText = statsText;
             } else {
-                document.getElementById('stats').innerHTML = '<strong>Nenhum dado válido disponível para análise.</strong>';
+                document.getElementById('stats').innerText = 'Nenhum dado válido disponível para análise.';
             }
         }
     </script>
 </body>
 </html>
-

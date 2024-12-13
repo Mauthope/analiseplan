@@ -131,6 +131,9 @@
             const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
             const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+            const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
+                                      .reduce((a, b) => a + b, 0) / values.length;
 
             if (window.chartInstance) {
                 window.chartInstance.destroy();
@@ -144,15 +147,23 @@
                         {
                             label: 'Valores',
                             data: values,
-                            backgroundColor: '#4CAF50',
+                            backgroundColor: values.map(value => value > mean ? '#FF5722' : '#4CAF50'),
                             borderColor: '#388E3C',
                             borderWidth: 1
                         },
                         {
-                            label: 'Média',
+                            label: 'Média Geral',
                             data: Array(values.length).fill(mean),
                             type: 'line',
-                            borderColor: '#FF5722',
+                            borderColor: '#FF9800',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Média Limitada (1 DP)',
+                            data: Array(values.length).fill(boundedMean),
+                            type: 'line',
+                            borderColor: '#03A9F4',
                             borderWidth: 2,
                             fill: false
                         }
@@ -166,7 +177,18 @@
                         },
                         title: {
                             display: true,
-                            text: 'Distribuição de Valores com Linha de Média'
+                            text: 'Distribuição de Valores com Linhas de Média'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    const index = context[0].dataIndex;
+                                    if (values[index] > mean) {
+                                        return 'Data/Hora: ' + labels[index];
+                                    }
+                                    return '';
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -197,19 +219,22 @@
                 const min = Math.min(...values).toFixed(2);
                 const max = Math.max(...values).toFixed(2);
                 const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+                const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
+                                          .reduce((a, b) => a + b, 0) / values.length;
 
                 document.getElementById('stats').innerHTML = `
                     <strong>Análise Estatística:</strong><br>
-                    Média: ${mean}<br>
-                    Mínimo: ${min}<br>
-                    Máximo: ${max}<br>
-                    Desvio Padrão: ${stdDev}<br>
-                    <small>Os dados considerados estão dentro de 2 desvios padrão da média.</small>
+                    Média Geral: ${mean}<br>
+                    Média Limitada (1 DP): ${boundedMean.toFixed(2)}<br>
+                    Valor Mínimo: ${min}<br>
+                    Valor Máximo: ${max}<br>
+                    Desvio Padrão: ${stdDev}
                 `;
             } else {
-                document.getElementById('stats').innerHTML = '<strong>Sem dados válidos para análise.</strong>';
+                document.getElementById('stats').innerHTML = '<strong>Nenhum dado válido disponível para análise.</strong>';
             }
         }
     </script>
 </body>
 </html>
+

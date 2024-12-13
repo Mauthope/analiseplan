@@ -78,9 +78,11 @@
                 reader.onload = function(e) {
                     const csvData = e.target.result;
                     const parsedData = parseCSV(csvData);
-                    displayTable(parsedData);
-                    createChart(parsedData);
-                    calculateStats(parsedData);
+                    if (parsedData.content.length > 0) {
+                        displayTable(parsedData);
+                        createChart(parsedData);
+                        calculateStats(parsedData);
+                    }
                 };
                 reader.readAsText(file);
             }
@@ -106,9 +108,13 @@
             const { headers, content } = parsedData;
             const ctx = document.getElementById('dataChart').getContext('2d');
             const labels = content.map(row => row[0]).slice(0, 10);
-            const values = content.map(row => parseFloat(row[1])).slice(0, 10);
+            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val)).slice(0, 10);
 
-            new Chart(ctx, {
+            if (window.chartInstance) {
+                window.chartInstance.destroy();
+            }
+
+            window.chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -136,22 +142,26 @@
         }
 
         function calculateStats(parsedData) {
-            const { headers, content } = parsedData;
+            const { content } = parsedData;
             const times = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
-            const sum = times.reduce((a, b) => a + b, 0);
-            const mean = (sum / times.length).toFixed(2);
-            const min = Math.min(...times).toFixed(2);
-            const max = Math.max(...times).toFixed(2);
-            const stdDev = Math.sqrt(times.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / times.length).toFixed(2);
+            if (times.length > 0) {
+                const sum = times.reduce((a, b) => a + b, 0);
+                const mean = (sum / times.length).toFixed(2);
+                const min = Math.min(...times).toFixed(2);
+                const max = Math.max(...times).toFixed(2);
+                const stdDev = Math.sqrt(times.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / times.length).toFixed(2);
 
-            document.getElementById('stats').innerHTML = `
-                <strong>Statistical Analysis:</strong><br>
-                Mean: ${mean}<br>
-                Min: ${min}<br>
-                Max: ${max}<br>
-                Standard Deviation: ${stdDev}
-            `;
+                document.getElementById('stats').innerHTML = `
+                    <strong>Statistical Analysis:</strong><br>
+                    Mean: ${mean}<br>
+                    Min: ${min}<br>
+                    Max: ${max}<br>
+                    Standard Deviation: ${stdDev}
+                `;
+            } else {
+                document.getElementById('stats').innerHTML = '<strong>No valid data for analysis.</strong>';
+            }
         }
     </script>
 </body>

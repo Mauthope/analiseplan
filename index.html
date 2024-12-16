@@ -153,16 +153,19 @@
         }
     });
 
-    // Calcular a média da contagem de dados por hora
+    // Calcular a média por hora
     const hours = [];
-    const averageCounts = []; // Média da contagem por hora
+    const averages = [];
+    const counts = [];
     for (let hour = 0; hour < 24; hour++) {
         if (hourlyData[hour]) {
             hours.push(`${hour}:00`);
-            averageCounts.push(hourlyData[hour].count / hourlyData[hour].total);  // Média da contagem
+            averages.push(hourlyData[hour].total / hourlyData[hour].count);
+            counts.push(hourlyCount[hour]);
         } else {
             hours.push(`${hour}:00`);
-            averageCounts.push(0);  // Caso não haja dados para a hora
+            averages.push(0);  // Caso não haja dados para a hora
+            counts.push(0);
         }
     }
 
@@ -172,51 +175,14 @@
     const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
     const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
 
-            // Gráfico da contagem de dados por hora
-            new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Contagem de Dados por Hora',
-                        data: counts,
-                        backgroundColor: '#FF9800',
-                        borderColor: '#FF9800',
-                        borderWidth: 1,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Contagem de Dados por Hora (Todos os Dados)'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Número de Dados'
-                            }
-                        }
-                    }
-                }
-            });
-
-               new Chart(ctx2, {
+    // Gráfico da contagem de dados por hora
+    new Chart(ctx2, {
         type: 'bar',
         data: {
             labels: hours,
             datasets: [{
-                label: 'Média da Contagem de Dados por Hora',
-                data: averageCounts,  // Média da contagem por hora
+                label: 'Contagem de Dados por Hora',
+                data: counts,
                 backgroundColor: '#FF9800',
                 borderColor: '#FF9800',
                 borderWidth: 1,
@@ -227,7 +193,7 @@
             plugins: {
                 title: {
                     display: true,
-                    text: 'Média da Contagem de Dados por Hora'
+                    text: 'Contagem de Dados por Hora (Todos os Dados)'
                 }
             },
             scales: {
@@ -240,109 +206,52 @@
                 y: {
                     title: {
                         display: true,
-                        text: 'Média de Contagem'
+                        text: 'Número de Dados'
                     }
                 }
             }
         }
     });
-            // Gráfico dos dados ordenados por tempo
-            const sortedContent = [...content].sort((a, b) => new Date(a[2]) - new Date(b[2]));
-            const sortedTimes = sortedContent.map(row => new Date(row[2]));
-            const sortedValues = sortedContent.map(row => parseFloat(row[1]));
 
-            new Chart(ctx3, {
-                type: 'line',
-                data: {
-                    labels: sortedTimes,
-                    datasets: [{
-                        label: 'Dados Ordenados por Tempo',
-                        data: sortedValues,
-                        borderColor: '#3e95cd',
-                        fill: false,
-                        borderWidth: 2,
-                    }]
+    // Gráfico da média por hora
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Média de Dados por Hora',
+                data: averages,
+                fill: false,
+                borderColor: '#4CAF50',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Média de Dados por Hora (Todos os Dados)'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hora'
+                    }
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Dados Ordenados por Tempo (Maior para Menor)'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'minute',
-                                tooltipFormat: 'll HH:mm'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Tempo'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Valor'
-                            }
-                        }
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Média de Tempo'
                     }
                 }
-            });
-
-            // Gráfico do tempo individual com linha média
-            new Chart(ctx4, {
-                type: 'line',
-                data: {
-                    labels: sortedTimes,
-                    datasets: [{
-                        label: 'Tempo Individual de Cada Dado',
-                        data: sortedValues,
-                        borderColor: '#FF5722',
-                        fill: false,
-                        borderWidth: 2,
-                    }, {
-                        label: 'Linha Média',
-                        data: Array(sortedTimes.length).fill(averages.reduce((a, b) => a + b, 0) / averages.length),
-                        borderColor: '#8BC34A',
-                        fill: false,
-                        borderWidth: 1,
-                        borderDash: [5, 5],
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Tempo Individual com Linha Média'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'minute',
-                                tooltipFormat: 'll HH:mm'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Tempo'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Valor'
-                            }
-                        }
-                    }
-                }
-            });
+            }
         }
+    });
+}
+
     </script>
 </body>
 </html>

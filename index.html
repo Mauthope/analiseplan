@@ -68,6 +68,8 @@
             <canvas id="dataChart"></canvas>
             <h3>Quantidade de Dados por Hora</h3>
             <canvas id="countChart"></canvas>
+            <h3>Dados Ordenados por Tempo (Maior para Menor)</h3>
+            <canvas id="sortedTimeChart"></canvas>
             <p id="stats"></p>
         </div>
     </main>
@@ -167,14 +169,27 @@
                 }
             }
 
+            // Dados ordenados por tempo (do maior para o menor)
+            const sortedData = content.map(row => ({
+                time: parseFloat(row[1]),  // Valor do tempo
+                label: row[2]  // Data e hora
+            })).sort((a, b) => b.time - a.time);  // Ordenar em ordem decrescente
+
+            const sortedTimes = sortedData.map(item => item.time);
+            const sortedLabels = sortedData.map(item => item.label);
+
             const ctx1 = document.getElementById('dataChart').getContext('2d');
             const ctx2 = document.getElementById('countChart').getContext('2d');
+            const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
 
             if (window.chartInstance1) {
                 window.chartInstance1.destroy();
             }
             if (window.chartInstance2) {
                 window.chartInstance2.destroy();
+            }
+            if (window.chartInstance3) {
+                window.chartInstance3.destroy();
             }
 
             // Gráfico da média por hora
@@ -247,6 +262,44 @@
                             title: {
                                 display: true,
                                 text: 'Número de Dados'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico dos dados ordenados por tempo
+            window.chartInstance3 = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: sortedLabels,
+                    datasets: [{
+                        label: 'Dados Ordenados por Tempo',
+                        data: sortedTimes,
+                        backgroundColor: '#2196F3',
+                        borderColor: '#2196F3',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Dados Ordenados por Tempo (Maior para Menor)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data e Hora'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tempo'
                             }
                         }
                     }

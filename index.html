@@ -128,118 +128,226 @@
             tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
         }
 
-        function createCharts(parsedData) {
-            const { headers, content } = parsedData;
+       function createCharts(parsedData) {
+    const { headers, content } = parsedData;
 
-            // Agrupar os dados por hora e calcular a soma e a média por hora
-            const hourlyData = {};
-            content.forEach(row => {
-                const dateStr = row[2];  // Coluna de data e hora (index 2)
-                const value = parseFloat(row[1]);
-                const hour = new Date(dateStr).getHours();  // Extrair a hora
-                if (!isNaN(value)) {
-                    if (!hourlyData[hour]) {
-                        hourlyData[hour] = { total: 0, count: 0 };
-                    }
-                    hourlyData[hour].total += value;
-                    hourlyData[hour].count += 1;
+    // Agrupar os dados por hora
+    const hourlyData = {};
+    const hourlyCount = {};  // Contagem de dados por hora
+    content.forEach(row => {
+        const dateStr = row[2];  // Coluna de data e hora (index 2)
+        const value = parseFloat(row[1]);
+        const hour = new Date(dateStr).getHours();  // Extrair a hora
+        if (!isNaN(value)) {
+            if (!hourlyData[hour]) {
+                hourlyData[hour] = { total: 0, count: 0 };
+            }
+            hourlyData[hour].total += value;
+            hourlyData[hour].count += 1;
+
+            // Contagem de dados por hora
+            if (!hourlyCount[hour]) {
+                hourlyCount[hour] = 0;
+            }
+            hourlyCount[hour] += 1;
+        }
+    });
+
+    // Calcular a média de contagem por hora
+    const hours = [];
+    const averages = [];
+    const counts = [];
+    for (let hour = 0; hour < 24; hour++) {
+        if (hourlyData[hour]) {
+            hours.push(`${hour}:00`);
+            averages.push(hourlyData[hour].total / hourlyData[hour].count);  // Média por hora
+            counts.push(hourlyCount[hour]);
+        } else {
+            hours.push(`${hour}:00`);
+            averages.push(0);  // Caso não haja dados para a hora
+            counts.push(0);
+        }
+    }
+
+    // Gráficos
+    const ctx1 = document.getElementById('dataChart').getContext('2d');
+    const ctx2 = document.getElementById('countChart').getContext('2d');
+    const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
+    const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
+
+    // Gráfico da contagem de dados por hora (média)
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Média de Contagem de Dados por Hora',
+                data: averages,  // Usando média das contagens por hora
+                backgroundColor: '#FF9800',
+                borderColor: '#FF9800',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Média de Contagem de Dados por Hora'
                 }
-            });
-
-            // Calcular a média por hora
-            const hours = [];
-            const averages = [];
-            for (let hour = 0; hour < 24; hour++) {
-                if (hourlyData[hour]) {
-                    hours.push(`${hour}:00`);
-                    averages.push(hourlyData[hour].total / hourlyData[hour].count);
-                } else {
-                    hours.push(`${hour}:00`);
-                    averages.push(0);  // Caso não haja dados para a hora
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hora'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Média de Dados'
+                    }
                 }
             }
+        }
+    });
 
-            // Gráficos
-            const ctx1 = document.getElementById('dataChart').getContext('2d');
-            const ctx2 = document.getElementById('countChart').getContext('2d');
-            const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
-            const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
-
-            // Gráfico da média de dados por hora
-            new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Média de Dados por Hora',
-                        data: averages,
-                        backgroundColor: '#FF9800',
-                        borderColor: '#FF9800',
-                        borderWidth: 1,
-                    }]
+    // Gráfico da média por hora (já existente, sem alterações)
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Média de Dados por Hora',
+                data: averages,
+                fill: false,
+                borderColor: '#4CAF50',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Média de Dados por Hora (Todos os Dados)'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hora'
+                    }
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Média de Dados por Hora'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Média de Dados'
-                            }
-                        }
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Média de Tempo'
                     }
                 }
-            });
+            }
+        }
+    });
 
-            // Gráfico da média por hora
-            new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Média de Dados por Hora',
-                        data: averages,
-                        fill: false,
-                        borderColor: '#4CAF50',
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Média de Dados por Hora (Todos os Dados)'
-                        }
+    // Gráfico dos dados ordenados por tempo (Maior para Menor)
+    const sortedContent = [...content].sort((a, b) => new Date(a[2]) - new Date(b[2]));
+    const sortedTimes = sortedContent.map(row => new Date(row[2]));
+    const sortedValues = sortedContent.map(row => parseFloat(row[1]));
+
+    new Chart(ctx3, {
+        type: 'line',
+        data: {
+            labels: sortedTimes,
+            datasets: [{
+                label: 'Dados Ordenados por Tempo',
+                data: sortedValues,
+                borderColor: '#3e95cd',
+                fill: false,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Dados Ordenados por Tempo (Maior para Menor)'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute',
+                        tooltipFormat: 'll HH:mm'
                     },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Média de Tempo'
-                            }
-                        }
+                    title: {
+                        display: true,
+                        text: 'Tempo'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Valor'
                     }
                 }
-            });
+            }
+        }
+    });
+
+    // Gráfico do tempo individual com linha média
+    new Chart(ctx4, {
+        type: 'line',
+        data: {
+            labels: sortedTimes,
+            datasets: [{
+                label: 'Tempo Individual de Cada Dado',
+                data: sortedValues,
+                borderColor: '#FF5722',
+                fill: false,
+                borderWidth: 2,
+            }, {
+                label: 'Linha Média',
+                data: Array(sortedTimes.length).fill(averages.reduce((a, b) => a + b, 0) / averages.length),
+                borderColor: '#8BC34A',
+                fill: false,
+                borderWidth: 1,
+                borderDash: [5, 5],
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Tempo Individual com Linha Média'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute',
+                        tooltipFormat: 'll HH:mm'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Tempo'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Valor'
+                    }
+                }
+            }
+        }
+    });
+}
 
             // Gráfico dos dados ordenados por tempo
             const sortedContent = [...content].sort((a, b) => new Date(a[2]) - new Date(b[2]));

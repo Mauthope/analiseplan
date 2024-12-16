@@ -68,6 +68,10 @@
             <canvas id="dataChart"></canvas>
             <p id="stats"></p>
         </div>
+        <div id="hourlyChartContainer">
+            <h2>Média por Hora</h2>
+            <canvas id="hourlyChart"></canvas>
+        </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -82,6 +86,7 @@
                         const filteredData = filterOutliers(parsedData);
                         displayTable(filteredData);
                         createChart(filteredData);
+                        createHourlyChart(filteredData);
                         calculateStats(filteredData);
                     }
                 };
@@ -127,33 +132,47 @@
         function createChart(parsedData) {
             const { headers, content } = parsedData;
             const ctx = document.getElementById('dataChart').getContext('2d');
+            const labels = content.map(row => row[0]);
+            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
-            // Agrupar os dados por hora
-            const hourlyData = groupByHour(content);
-            const hours = Object.keys(hourlyData);
-            const averages = hours.map(hour => {
-                const values = hourlyData[hour];
-                const sum = values.reduce((a, b) => a + b, 0);
-                return sum / values.length;
-            });
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+            const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
+                                      .reduce((a, b) => a + b, 0) / values.length;
 
-            // Criando o gráfico
             if (window.chartInstance) {
                 window.chartInstance.destroy();
             }
 
             window.chartInstance = new Chart(ctx, {
-                type: 'line',
+                type: 'bar',
                 data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Média por Hora',
-                        data: averages,
-                        borderColor: '#FF5722',
-                        backgroundColor: 'rgba(255, 87, 34, 0.2)',
-                        fill: true,
-                        borderWidth: 2
-                    }]
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Valores',
+                            data: values,
+                            backgroundColor: values.map(value => value > mean ? '#FF5722' : '#4CAF50'),
+                            borderColor: '#388E3C',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Média Geral',
+                            data: Array(values.length).fill(mean),
+                            type: 'line',
+                            borderColor: '#FF9800',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Média Limitada (1 DP)',
+                            data: Array(values.length).fill(boundedMean),
+                            type: 'line',
+                            borderColor: '#03A9F4',
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -161,6 +180,77 @@
                         legend: {
                             position: 'top',
                         },
+                        title: {
+                            display: true,
+                            text: 'Distribuição de Valores com Linhas de Média'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    const index = context[0].dataIndex;
+                                    if (values[index] > mean) {
+                                        return 'Data/Hora: ' + labels[index];
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: headers[0]
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Valores'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createHourlyChart(parsedData) {
+            const { headers, content } = parsedData;
+            const hourData = {};
+
+            content.forEach(row => {
+                const dateTimeStr = row[2]; // Coluna 3 (data e hora)
+                const value = parseFloat(row[1]);
+                const hour = new Date(dateTimeStr).getHours();
+                
+                if (!isNaN(value)) {
+                    if (!hourData[hour]) {
+                        hourData[hour] = { sum: 0, count: 0 };
+                    }
+                    hourData[hour].sum += value;
+                    hourData[hour].count++;
+                }
+            });
+
+            const hours = Object.keys(hourData).sort();
+            const hourlyAverages = hours.map(hour => hourData[hour].sum / hourData[hour].count);
+
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Média por Hora',
+                        data: hourlyAverages,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#388E3C',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
                         title: {
                             display: true,
                             text: 'Média de Valores por Hora'
@@ -171,43 +261,18 @@
                             title: {
                                 display: true,
                                 text: 'Hora'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return value + ':00'; // Exibe as horas como 7:00, 8:00, etc.
-                                }
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Valores Médios'
+                                text: 'Média'
                             }
                         }
                     }
                 }
             });
         }
-
-        function groupByHour(content) {
-            const hourlyData = {};
-
-            content.forEach(row => {
-                const date = new Date(row[2]);  // Supondo que a data esteja na coluna 3 (índice 2)
-                const hour = date.getHours();
-                const value = parseFloat(row[1]);
-
-                if (!isNaN(value)) {
-                    if (!hourlyData[hour]) {
-                        hourlyData[hour] = [];
-                    }
-                    hourlyData[hour].push(value);
-                }
-            });
-
-            return hourlyData;
-        }
-
         function calculateStats(parsedData) {
             const { content } = parsedData;
             const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));

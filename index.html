@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -83,226 +84,227 @@
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const csvData = e.target.result;
-                    const parsedData = parseCSV(csvData);
-                    if (parsedData.content.length > 0) {
-                        const filteredData = filterOutliers(parsedData);
-                        displayTable(filteredData);
-                        createChart(filteredData);
-                        createSortedChart(filteredData);
-                        createTimeChart(filteredData);
-                        createAverageTimeChart(filteredData);
-                        calculateStats(filteredData);
-                    }
-                };
-                reader.readAsText(file);
-            }
+    document.getElementById('fileInput').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const csvData = e.target.result;
+                const parsedData = parseCSV(csvData);
+                if (parsedData.content.length > 0) {
+                    const filteredData = filterOutliers(parsedData);
+                    displayTable(filteredData);
+                    createChart(filteredData);
+                    createSortedChart(filteredData);
+                    createHourlyAverageChart(filteredData);
+                    calculateStats(filteredData);
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function parseCSV(data) {
+        const rows = data.split('\n').filter(row => row.trim() !== '');
+        const headers = rows[0].split(',').map(header => header.replace(/(^"|"$)/g, '').trim());
+        const content = rows.slice(1).map(row =>
+            row.split(',').map(cell => cell.replace(/(^"|"$)/g, '').trim())
+        );
+        return { headers, content };
+    }
+
+    function filterOutliers(parsedData) {
+        const { content } = parsedData;
+        const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+        const lowerBound = mean - 2 * stdDev;
+        const upperBound = mean + 2 * stdDev;
+
+        const filteredContent = content.filter(row => {
+            const value = parseFloat(row[1]);
+            return !isNaN(value) && value >= lowerBound && value <= upperBound;
         });
 
-        function parseCSV(data) {
-            const rows = data.split('\n').filter(row => row.trim() !== '');
-            const headers = rows[0].split(',').map(header => header.replace(/(^"|"$)/g, '').trim());
-            const content = rows.slice(1).map(row => 
-                row.split(',').map(cell => cell.replace(/(^"|"$)/g, '').trim())
-            );
-            return { headers, content };
+        return { headers: parsedData.headers, content: filteredContent };
+    }
+
+    function displayTable(parsedData) {
+        const { headers, content } = parsedData;
+        const tableHead = document.querySelector('#dataTable thead');
+        const tableBody = document.querySelector('#dataTable tbody');
+
+        tableHead.innerHTML = '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
+        tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
+    }
+
+    function createChart(parsedData) {
+        const { headers, content } = parsedData;
+        const ctx = document.getElementById('dataChart').getContext('2d');
+        const labels = content.map(row => row[0]);
+        const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+
+        if (window.chartInstance) {
+            window.chartInstance.destroy();
         }
 
-        function filterOutliers(parsedData) {
-            const { content } = parsedData;
-            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
-
-            const mean = values.reduce((a, b) => a + b, 0) / values.length;
-            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
-            const lowerBound = mean - 2 * stdDev;
-            const upperBound = mean + 2 * stdDev;
-
-            const filteredContent = content.filter(row => {
-                const value = parseFloat(row[1]);
-                return !isNaN(value) && value >= lowerBound && value <= upperBound;
-            });
-
-            return { headers: parsedData.headers, content: filteredContent };
-        }
-
-        function displayTable(parsedData) {
-            const { headers, content } = parsedData;
-            const tableHead = document.querySelector('#dataTable thead');
-            const tableBody = document.querySelector('#dataTable tbody');
-
-            tableHead.innerHTML = '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
-            tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
-        }
-
-        function createChart(parsedData) {
-            const { headers, content } = parsedData;
-            const ctx = document.getElementById('dataChart').getContext('2d');
-            const labels = content.map(row => row[0]);
-            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
-
-            if (window.chartInstance) {
-                window.chartInstance.destroy();
-            }
-
-            window.chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
+        window.chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
                         label: 'Valores',
                         data: values,
-                        backgroundColor: '#4CAF50',
+                        backgroundColor: values.map(value => value > mean ? '#FF5722' : '#4CAF50'),
                         borderColor: '#388E3C',
                         borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Gráfico Original' }
+                    },
+                    {
+                        label: 'Média Geral',
+                        data: Array(values.length).fill(mean),
+                        type: 'line',
+                        borderColor: '#FF9800',
+                        borderWidth: 2,
+                        fill: false
                     }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Distribuição de Valores' }
+                },
+                scales: {
+                    x: { title: { display: true, text: headers[0] } },
+                    y: { title: { display: true, text: 'Valores' } }
                 }
-            });
+            }
+        });
+    }
+
+    function createSortedChart(parsedData) {
+        const { content } = parsedData;
+        const sortedData = [...content]
+            .map(row => ({ label: row[0], value: parseFloat(row[1]) }))
+            .sort((a, b) => b.value - a.value);
+
+        const labels = sortedData.map(item => item.label);
+        const values = sortedData.map(item => item.value);
+
+        const ctx = document.getElementById('sortedChart').getContext('2d');
+        if (window.sortedChartInstance) {
+            window.sortedChartInstance.destroy();
         }
 
-        function createSortedChart(parsedData) {
-            const { headers, content } = parsedData;
-            const ctx = document.getElementById('sortedChart').getContext('2d');
-            const sortedContent = content.slice().sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
-            const labels = sortedContent.map(row => row[0]);
-            const values = sortedContent.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
-
-            if (window.sortedChartInstance) {
-                window.sortedChartInstance.destroy();
-            }
-
-            window.sortedChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
+        window.sortedChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
                         label: 'Valores Ordenados',
                         data: values,
                         backgroundColor: '#2196F3',
                         borderColor: '#1E88E5',
                         borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Gráfico Ordenado (Maior para Menor)' }
                     }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Valores Ordenados (Maior para Menor)' }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Categorias' } },
+                    y: { title: { display: true, text: 'Valores' } }
                 }
-            });
+            }
+        });
+    }
+
+    function createHourlyAverageChart(parsedData) {
+        const { content } = parsedData;
+
+        const hourlyData = {};
+        content.forEach(row => {
+            const time = row[0];
+            const value = parseFloat(row[1]);
+            if (!isNaN(value)) {
+                const hour = time.split(':')[0]; // Extrai a hora
+                if (!hourlyData[hour]) hourlyData[hour] = { total: 0, count: 0 };
+                hourlyData[hour].total += value;
+                hourlyData[hour].count++;
+            }
+        });
+
+        const labels = Object.keys(hourlyData).sort();
+        const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count));
+
+        const ctx = document.getElementById('hourlyAverageChart').getContext('2d');
+        if (window.hourlyAverageChartInstance) {
+            window.hourlyAverageChartInstance.destroy();
         }
 
-        function createTimeChart(parsedData) {
-            const ctx = document.getElementById('timeChart').getContext('2d');
-            const { content } = parsedData;
-
-            const hours = new Array(24).fill(0);
-            content.forEach(row => {
-                const timestamp = row[2];
-                const hour = new Date(timestamp).getHours();
-                if (!isNaN(hour)) {
-                    hours[hour] += 1;
-                }
-            });
-
-            if (window.timeChartInstance) {
-                window.timeChartInstance.destroy();
-            }
-
-            window.timeChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: hours.map((_, i) => `${i}:00`),
-                    datasets: [{
-                        label: 'Atividade por Hora',
-                        data: hours,
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Gráfico de Atividade por Hora' }
-                    }
-                }
-            });
-        }
-
-        function createAverageTimeChart(parsedData) {
-            const ctx = document.getElementById('averageTimeChart').getContext('2d');
-            const { content } = parsedData;
-
-            const hourData = {};
-            content.forEach(row => {
-                const timestamp = row[2];
-                const value = parseFloat(row[1]);
-                const hour = new Date(timestamp).getHours();
-                if (!isNaN(hour) && !isNaN(value)) {
-                    if (!hourData[hour]) {
-                        hourData[hour] = { sum: 0, count: 0 };
-                    }
-                    hourData[hour].sum += value;
-                    hourData[hour].count += 1;
-                }
-            });
-
-            const labels = Object.keys(hourData).map(hour => `${hour}:00`);
-            const averages = Object.values(hourData).map(data => data.sum / data.count);
-
-            if (window.averageTimeChartInstance) {
-                window.averageTimeChartInstance.destroy();
-            }
-
-            window.averageTimeChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Média de Tempo por Hora',
+        window.hourlyAverageChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Média por Hora',
                         data: averages,
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Média de Tempo por Hora' }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Horas'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Média de Tempo (minutos)'
-                            },
-                            beginAtZero: true
-                        }
+                        borderColor: '#673AB7',
+                        backgroundColor: '#D1C4E9',
+                        fill: true,
+                        tension: 0.4
                     }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true },
+                    title: { display: true, text: 'Média de Valores por Hora' }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Horas' } },
+                    y: { title: { display: true, text: 'Média dos Valores' } }
                 }
-            });
+            }
+        });
+    }
+
+    function calculateStats(parsedData) {
+        const { content } = parsedData;
+        const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+        if (values.length > 0) {
+            const sum = values.reduce((a, b) => a + b, 0);
+            const mean = (sum / values.length).toFixed(2);
+            const min = Math.min(...values).toFixed(2);
+            const max = Math.max(...values).toFixed(2);
+            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+
+            document.getElementById('stats').innerHTML = `
+                <strong>Análise Estatística:</strong><br>
+                Média Geral: ${mean}<br>
+                Valor Mínimo: ${min}<br>
+                Valor Máximo: ${max}<br>
+                Desvio Padrão: ${stdDev}
+            `;
+        } else {
+            document.getElementById('stats').innerHTML = '<strong>Nenhum dado válido disponível para análise.</strong>';
         }
+    }
+</script>
 </body>
-    </html>
+</html>
+

@@ -235,25 +235,29 @@ function createHourlyAverageChart(parsedData) {
     const { content } = parsedData;
 
     const hourlyData = {};
+
+    // Percorre cada linha dos dados
     content.forEach(row => {
-        const time = row[0]; // Hora da primeira coluna (assumindo formato 'HH:MM')
-        const value = parseFloat(row[1]); // Valor da segunda coluna (tempo em minutos ou outro)
+        const datetime = row[0]; // A primeira coluna contém a data e hora (por exemplo, '2024-12-16 07:00')
+        const value = parseFloat(row[1]); // A segunda coluna contém o tempo em minutos ou outro valor numérico
 
         if (!isNaN(value)) {
-            const hour = time.split(':')[0]; // Extrai a hora (ex: '7' de '07:30')
+            // Extrai a hora da data e hora (ex: '2024-12-16 07:00' -> '07')
+            const hour = datetime.split(' ')[1].split(':')[0]; // Pega a hora da string no formato 'HH:MM'
+
             if (!hourlyData[hour]) hourlyData[hour] = { total: 0, count: 0 };
             hourlyData[hour].total += value;
             hourlyData[hour].count++;
         }
     });
 
-    const labels = Object.keys(hourlyData).sort(); // Ordena as horas
-    const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count));
+    const labels = Object.keys(hourlyData).sort(); // Ordena as horas (ex: '7', '8', '9'...)
+    const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count)); // Calcula a média
 
     // Criação do gráfico
     const ctx = document.getElementById('timeChart').getContext('2d');
     if (window.timeChartInstance) {
-        window.timeChartInstance.destroy(); // Destruir instância anterior
+        window.timeChartInstance.destroy(); // Destruir instância anterior do gráfico
     }
 
     window.timeChartInstance = new Chart(ctx, {
@@ -263,7 +267,7 @@ function createHourlyAverageChart(parsedData) {
             datasets: [
                 {
                     label: 'Média de Tempo por Hora',
-                    data: averages, // As médias por hora
+                    data: averages, // A média por hora
                     borderColor: '#4CAF50',
                     backgroundColor: 'rgba(76, 175, 80, 0.2)',
                     fill: true,
@@ -284,8 +288,6 @@ function createHourlyAverageChart(parsedData) {
         }
     });
 }
-
-
 
     function calculateStats(parsedData) {
         const { content } = parsedData;

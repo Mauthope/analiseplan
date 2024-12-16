@@ -174,33 +174,18 @@
                 }
             }
 
-            // Dados para os dias 11/12 e 12/12
-            const dateFilteredData = content.filter(row => {
-                const date = new Date(row[2]);
-                return date.getDate() === 11 && date.getMonth() === 11 || date.getDate() === 12 && date.getMonth() === 11;
-            });
+            // Dados ordenados por tempo (do maior para o menor)
+            const sortedData = content.map(row => ({
+                time: parseFloat(row[1]),  // Valor do tempo
+                label: row[2]  // Data e hora
+            })).sort((a, b) => b.time - a.time);  // Ordenar em ordem decrescente
 
-            const hourlyDataForDates = {};
-            const hourlyCountForDates = {};
-            dateFilteredData.forEach(row => {
-                const dateStr = row[2];  // Coluna de data e hora (index 2)
-                const value = parseFloat(row[1]);
-                const hour = new Date(dateStr).getHours();  // Extrair a hora
-                if (!isNaN(value)) {
-                    if (!hourlyDataForDates[hour]) {
-                        hourlyDataForDates[hour] = { total: 0, count: 0 };
-                    }
-                    hourlyDataForDates[hour].total += value;
-                    hourlyDataForDates[hour].count += 1;
+            const sortedTimes = sortedData.map(item => item.time);
+            const sortedLabels = sortedData.map(item => item.label);
 
-                    // Contagem de dados por hora
-                    if (!hourlyCountForDates[hour]) {
-                        hourlyCountForDates[hour] = 0;
-                    }
-                    hourlyCountForDates[hour] += 1;
-                }
-            });
-
+            // Dados para o gráfico de tempo individual
+            const individualTimes = content.map(row => parseFloat(row[1]));
+            const meanTime = individualTimes.reduce((a, b) => a + b, 0) / individualTimes.length;
             // Calcular a média por hora para os dias 11/12 e 12/12
             const hoursForDates = [];
             const averagesForDates = [];
@@ -217,7 +202,6 @@
                 }
             }
 
-            // Gráficos
             const ctx1 = document.getElementById('dataChart').getContext('2d');
             const ctx2 = document.getElementById('countChart').getContext('2d');
             const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
@@ -225,16 +209,67 @@
             const ctx5 = document.getElementById('countChartDates').getContext('2d');
             const ctx6 = document.getElementById('averageChartDates').getContext('2d');
 
-            // Gráfico da contagem de dados por hora
-            new Chart(ctx2, {
+            if (window.chartInstance1) {
+                window.chartInstance1.destroy();
+            }
+            if (window.chartInstance2) {
+                window.chartInstance2.destroy();
+            }
+            if (window.chartInstance3) {
+                window.chartInstance3.destroy();
+            }
+            if (window.chartInstance4) {
+                window.chartInstance4.destroy();
+            }
+
+            // Gráfico da média por hora
+            window.chartInstance1 = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Média por Hora',
+                        data: averages,
+                        borderColor: '#4CAF50',
+                        borderWidth: 2,
+                        fill: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Média dos Valores por Hora'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hora'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Média de Valores'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de contagem de dados por hora
+            window.chartInstance2 = new Chart(ctx2, {
                 type: 'bar',
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Contagem de Dados por Hora',
+                        label: 'Quantidade de Dados por Hora',
                         data: counts,
-                        backgroundColor: '#FF9800',
-                        borderColor: '#FF9800',
+                        backgroundColor: '#FF5722',
+                        borderColor: '#FF5722',
                         borderWidth: 1,
                     }]
                 },
@@ -243,7 +278,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem de Dados por Hora (Todos os Dados)'
+                            text: 'Quantidade de Dados por Hora'
                         }
                     },
                     scales: {
@@ -263,52 +298,14 @@
                 }
             });
 
-            // Gráfico da média por hora
-            new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Média de Dados por Hora',
-                        data: averages,
-                        fill: false,
-                        borderColor: '#4CAF50',
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Média de Dados por Hora (Todos os Dados)'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Média de Tempo'
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de contagem de dados para os dias 11/12 e 12/12
-            new Chart(ctx5, {
+            // Gráfico dos dados ordenados por tempo
+            window.chartInstance3 = new Chart(ctx3, {
                 type: 'bar',
                 data: {
-                    labels: hoursForDates,
+                    labels: sortedLabels,
                     datasets: [{
-                        label: 'Contagem de Dados por Hora (11/12 e 12/12)',
-                        data: countsForDates,
+                        label: 'Tempo',
+                        data: sortedTimes,
                         backgroundColor: '#2196F3',
                         borderColor: '#2196F3',
                         borderWidth: 1,
@@ -319,27 +316,73 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem de Dados por Hora (11/12 e 12/12)'
+                            text: 'Dados Ordenados por Tempo'
                         }
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Hora'
+                                text: 'Data e Hora'
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Número de Dados'
+                                text: 'Tempo (em unidades)'
                             }
                         }
                     }
                 }
             });
 
-            // Gráfico da média por hora para os dias 11/12 e 12/12
+            // Gráfico do tempo individual com linha média
+            window.chartInstance4 = new Chart(ctx4, {
+                type: 'bar',
+                data: {
+                    labels: content.map((_, index) => `Dado ${index + 1}`),
+                    datasets: [{
+                        label: 'Tempo de Cada Dado',
+                        data: individualTimes,
+                        backgroundColor: '#8BC34A',
+                        borderColor: '#8BC34A',
+                        borderWidth: 1,
+                    },
+                    {
+                        label: 'Média do Tempo',
+                        data: Array(individualTimes.length).fill(meanTime),
+                        type: 'line',
+                        borderColor: '#FF9800',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Tempo Individual de Cada Dado com Linha Média'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Dado'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tempo'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+// Gráfico da média por hora para os dias 11/12 e 12/12
             new Chart(ctx6, {
                 type: 'line',
                 data: {
@@ -377,7 +420,6 @@
                 }
             });
         }
-
         function calculateStats(parsedData) {
             const individualTimes = parsedData.content.map(row => parseFloat(row[1]));
             const meanTime = individualTimes.reduce((a, b) => a + b, 0) / individualTimes.length;

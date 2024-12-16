@@ -70,6 +70,8 @@
             <canvas id="countChart"></canvas>
             <h3>Dados Ordenados por Tempo (Maior para Menor)</h3>
             <canvas id="sortedTimeChart"></canvas>
+            <h3>Tempo Individual de Cada Dado com Linha Média</h3>
+            <canvas id="individualTimeChart"></canvas>
             <p id="stats"></p>
         </div>
     </main>
@@ -178,9 +180,14 @@
             const sortedTimes = sortedData.map(item => item.time);
             const sortedLabels = sortedData.map(item => item.label);
 
+            // Dados para o gráfico de tempo individual
+            const individualTimes = content.map(row => parseFloat(row[1]));
+            const meanTime = individualTimes.reduce((a, b) => a + b, 0) / individualTimes.length;
+
             const ctx1 = document.getElementById('dataChart').getContext('2d');
             const ctx2 = document.getElementById('countChart').getContext('2d');
             const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
+            const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
 
             if (window.chartInstance1) {
                 window.chartInstance1.destroy();
@@ -190,6 +197,9 @@
             }
             if (window.chartInstance3) {
                 window.chartInstance3.destroy();
+            }
+            if (window.chartInstance4) {
+                window.chartInstance4.destroy();
             }
 
             // Gráfico da média por hora
@@ -274,7 +284,7 @@
                 data: {
                     labels: sortedLabels,
                     datasets: [{
-                        label: 'Dados Ordenados por Tempo',
+                        label: 'Tempo',
                         data: sortedTimes,
                         backgroundColor: '#2196F3',
                         borderColor: '#2196F3',
@@ -286,7 +296,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Dados Ordenados por Tempo (Maior para Menor)'
+                            text: 'Dados Ordenados por Tempo'
                         }
                     },
                     scales: {
@@ -294,6 +304,52 @@
                             title: {
                                 display: true,
                                 text: 'Data e Hora'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tempo (em unidades)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico do tempo individual com linha média
+            window.chartInstance4 = new Chart(ctx4, {
+                type: 'bar',
+                data: {
+                    labels: content.map((_, index) => `Dado ${index + 1}`),
+                    datasets: [{
+                        label: 'Tempo de Cada Dado',
+                        data: individualTimes,
+                        backgroundColor: '#8BC34A',
+                        borderColor: '#8BC34A',
+                        borderWidth: 1,
+                    },
+                    {
+                        label: 'Média do Tempo',
+                        data: Array(individualTimes.length).fill(meanTime),
+                        type: 'line',
+                        borderColor: '#FF9800',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Tempo Individual de Cada Dado com Linha Média'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Dado'
                             }
                         },
                         y: {
@@ -308,26 +364,20 @@
         }
 
         function calculateStats(parsedData) {
-            const { content } = parsedData;
-            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+            const individualTimes = parsedData.content.map(row => parseFloat(row[1]));
+            const meanTime = individualTimes.reduce((a, b) => a + b, 0) / individualTimes.length;
+            const maxTime = Math.max(...individualTimes);
+            const minTime = Math.min(...individualTimes);
+            const totalTime = individualTimes.reduce((a, b) => a + b, 0);
 
-            if (values.length > 0) {
-                const sum = values.reduce((a, b) => a + b, 0);
-                const mean = (sum / values.length).toFixed(2);
-                const min = Math.min(...values).toFixed(2);
-                const max = Math.max(...values).toFixed(2);
-                const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
-
-                document.getElementById('stats').innerHTML = `
-                    <strong>Análise Estatística:</strong><br>
-                    Média Geral: ${mean}<br>
-                    Valor Mínimo: ${min}<br>
-                    Valor Máximo: ${max}<br>
-                    Desvio Padrão: ${stdDev}
-                `;
-            } else {
-                document.getElementById('stats').innerHTML = '<strong>Nenhum dado válido disponível para análise.</strong>';
-            }
+            const statsElement = document.getElementById('stats');
+            statsElement.innerHTML = `
+                <strong>Estatísticas dos Dados:</strong><br>
+                Tempo Máximo: ${maxTime}<br>
+                Tempo Mínimo: ${minTime}<br>
+                Tempo Médio: ${meanTime}<br>
+                Tempo Total: ${totalTime}
+            `;
         }
     </script>
 </body>

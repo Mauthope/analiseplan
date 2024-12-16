@@ -223,17 +223,17 @@
             const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
             const ctx5 = document.getElementById('specificDateCountChart').getContext('2d');
 
-            // Gráfico de média por hora
+            // Gráfico da média por hora
             window.chartInstance1 = new Chart(ctx1, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: hours,
                     datasets: [{
                         label: 'Média por Hora',
                         data: averages,
-                        backgroundColor: '#4CAF50',
                         borderColor: '#4CAF50',
-                        borderWidth: 1,
+                        borderWidth: 2,
+                        fill: false,
                     }]
                 },
                 options: {
@@ -241,7 +241,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Média dos Dados por Hora'
+                            text: 'Média dos Valores por Hora'
                         }
                     },
                     scales: {
@@ -254,7 +254,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Média'
+                                text: 'Média de Valores'
                             }
                         }
                     }

@@ -174,7 +174,11 @@
                 }
             }
 
-
+            // Dados para os dias 11/12 e 12/12
+            const dateFilteredData = content.filter(row => {
+                const date = new Date(row[2]);
+                return date.getDate() === 09 && date.getMonth() === 11 || date.getDate() === 10 && date.getMonth() === 11 || date.getDate() === 11 && date.getMonth() === 11 || date.getDate() === 12 && date.getMonth() === 11 || date.getDate() === 13 && date.getMonth() === 11;
+            });
 
             const hourlyDataForDates = {};
             const hourlyCountForDates = {};

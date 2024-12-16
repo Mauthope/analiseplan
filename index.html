@@ -236,34 +236,36 @@ function createHourlyAverageChart(parsedData) {
 
     const hourlyData = {};
     content.forEach(row => {
-        const time = row[0];
-        const value = parseFloat(row[1]);
+        const time = row[0]; // Hora da primeira coluna (assumindo formato 'HH:MM')
+        const value = parseFloat(row[1]); // Valor da segunda coluna (tempo em minutos ou outro)
+
         if (!isNaN(value)) {
-            const hour = time.split(':')[0]; // Extrai a hora
+            const hour = time.split(':')[0]; // Extrai a hora (ex: '7' de '07:30')
             if (!hourlyData[hour]) hourlyData[hour] = { total: 0, count: 0 };
             hourlyData[hour].total += value;
             hourlyData[hour].count++;
         }
     });
 
-    const labels = Object.keys(hourlyData).sort();
+    const labels = Object.keys(hourlyData).sort(); // Ordena as horas
     const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count));
 
-    const ctx = document.getElementById('hourlyAverageChart').getContext('2d');
-    if (window.hourlyAverageChartInstance) {
-        window.hourlyAverageChartInstance.destroy();
+    // Criação do gráfico
+    const ctx = document.getElementById('timeChart').getContext('2d');
+    if (window.timeChartInstance) {
+        window.timeChartInstance.destroy(); // Destruir instância anterior
     }
 
-    window.hourlyAverageChartInstance = new Chart(ctx, {
+    window.timeChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: labels, // As horas (7, 8, 9, ...)
             datasets: [
                 {
-                    label: 'Média por Hora',
-                    data: averages,
-                    borderColor: '#673AB7',
-                    backgroundColor: '#D1C4E9',
+                    label: 'Média de Tempo por Hora',
+                    data: averages, // As médias por hora
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
                     fill: true,
                     tension: 0.4
                 }
@@ -273,15 +275,16 @@ function createHourlyAverageChart(parsedData) {
             responsive: true,
             plugins: {
                 legend: { display: true },
-                title: { display: true, text: 'Média de Valores por Hora' }
+                title: { display: true, text: 'Média de Tempo por Hora' }
             },
             scales: {
-                x: { title: { display: true, text: 'Horas' } },
-                y: { title: { display: true, text: 'Média dos Valores' } }
+                x: { title: { display: true, text: 'Hora' } },
+                y: { title: { display: true, text: 'Tempo Médio (minutos)' } }
             }
         }
     });
 }
+
 
 
     function calculateStats(parsedData) {

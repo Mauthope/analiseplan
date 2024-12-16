@@ -250,6 +250,103 @@
                     }
                 }
             });
+
+            // Gráfico dos dados ordenados por tempo
+            const sortedContent = [...content].sort((a, b) => new Date(a[2]) - new Date(b[2]));
+            const sortedTimes = sortedContent.map(row => new Date(row[2]));
+            const sortedValues = sortedContent.map(row => parseFloat(row[1]));
+
+            new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: sortedTimes,
+                    datasets: [{
+                        label: 'Dados Ordenados por Tempo',
+                        data: sortedValues,
+                        borderColor: '#3e95cd',
+                        fill: false,
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Dados Ordenados por Tempo (Maior para Menor)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                tooltipFormat: 'll HH:mm'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Tempo'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Valor'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico do tempo individual com linha média
+            new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: sortedTimes,
+                    datasets: [{
+                        label: 'Tempo Individual de Cada Dado',
+                        data: sortedValues,
+                        borderColor: '#FF5722',
+                        fill: false,
+                        borderWidth: 2,
+                    }, {
+                        label: 'Linha Média',
+                        data: Array(sortedTimes.length).fill(averages.reduce((a, b) => a + b, 0) / averages.length),
+                        borderColor: '#8BC34A',
+                        fill: false,
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Tempo Individual com Linha Média'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                tooltipFormat: 'll HH:mm'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Tempo'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Valor'
+                            }
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>

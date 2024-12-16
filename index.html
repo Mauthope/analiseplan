@@ -128,7 +128,7 @@
             tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
         }
 
-       function createCharts(parsedData) {
+  function createCharts(parsedData) {
     const { headers, content } = parsedData;
 
     // Agrupar os dados por hora
@@ -169,31 +169,43 @@
         }
     }
 
-    // Gráficos
-    const ctx1 = document.getElementById('dataChart').getContext('2d');
-    const ctx2 = document.getElementById('countChart').getContext('2d');
-    const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
-    const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
+    // Calcular a média de contagem
+    const totalCount = counts.reduce((a, b) => a + b, 0);
+    const averageCount = totalCount / counts.length;
 
-    // Gráfico da contagem de dados por hora
+    // Gráficos
+    const ctx2 = document.getElementById('countChart').getContext('2d');
+
+    // Gráfico da contagem de dados por hora com a média da contagem
     new Chart(ctx2, {
         type: 'bar',
         data: {
             labels: hours,
-            datasets: [{
-                label: 'Contagem de Dados por Hora',
-                data: counts,
-                backgroundColor: '#FF9800',
-                borderColor: '#FF9800',
-                borderWidth: 1,
-            }]
+            datasets: [
+                {
+                    label: 'Contagem de Dados por Hora',
+                    data: counts,
+                    backgroundColor: '#FF9800',
+                    borderColor: '#FF9800',
+                    borderWidth: 1,
+                },
+                {
+                    label: 'Média da Contagem',
+                    data: new Array(counts.length).fill(averageCount),
+                    type: 'line',  // Linha para a média
+                    borderColor: '#2196F3',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                }
+            ]
         },
         options: {
             responsive: true,
             plugins: {
                 title: {
                     display: true,
-                    text: 'Contagem de Dados por Hora (Todos os Dados)'
+                    text: 'Contagem de Dados por Hora (Todos os Dados) com Média'
                 }
             },
             scales: {
@@ -212,6 +224,8 @@
             }
         }
     });
+}
+
 
     // Gráfico da média por hora
     new Chart(ctx1, {

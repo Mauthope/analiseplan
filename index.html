@@ -127,11 +127,17 @@
             const tableBody = document.querySelector('#dataTable tbody');
 
             tableHead.innerHTML = '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
-            tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');;
+            tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
         }
 
         function createCharts(parsedData) {
             const { headers, content } = parsedData;
+
+            // Verificar se há dados para plotar
+            if (content.length === 0) {
+                alert('Nenhum dado disponível para plotar gráficos.');
+                return;
+            }
 
             // Agrupar os dados por hora
             const hourlyData = {};

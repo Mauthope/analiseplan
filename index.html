@@ -128,7 +128,8 @@
             tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
         }
 
-       function createCharts(parsedData) {
+       // Função para criar os gráficos
+function createCharts(parsedData) {
     const { headers, content } = parsedData;
 
     // Agrupar os dados por hora
@@ -153,19 +154,16 @@
         }
     });
 
-    // Calcular a média de contagem por hora
+    // Calcular a média da contagem de dados por hora
     const hours = [];
-    const averages = [];
-    const counts = [];
+    const averageCounts = []; // Média da contagem por hora
     for (let hour = 0; hour < 24; hour++) {
         if (hourlyData[hour]) {
             hours.push(`${hour}:00`);
-            averages.push(hourlyData[hour].total / hourlyData[hour].count);  // Média por hora
-            counts.push(hourlyCount[hour]);
+            averageCounts.push(hourlyData[hour].count / hourlyData[hour].total);  // Média da contagem
         } else {
             hours.push(`${hour}:00`);
-            averages.push(0);  // Caso não haja dados para a hora
-            counts.push(0);
+            averageCounts.push(0);  // Caso não haja dados para a hora
         }
     }
 
@@ -175,45 +173,7 @@
     const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
     const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
 
-    // Gráfico da contagem de dados por hora (média)
-    new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: hours,
-            datasets: [{
-                label: 'Média de Contagem de Dados por Hora',
-                data: averages,  // Usando média das contagens por hora
-                backgroundColor: '#FF9800',
-                borderColor: '#FF9800',
-                borderWidth: 1,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Média de Contagem de Dados por Hora'
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Hora'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Média de Dados'
-                    }
-                }
-            }
-        }
-    });
-
-    // Gráfico da média por hora (já existente, sem alterações)
+ // Gráfico da média por hora (já existente, sem alterações)
     new Chart(ctx1, {
         type: 'line',
         data: {
@@ -251,6 +211,45 @@
         }
     });
 
+   // Gráfico da média da contagem por hora
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Média da Contagem de Dados por Hora',
+                data: averageCounts,  // Média da contagem por hora
+                backgroundColor: '#FF9800',
+                borderColor: '#FF9800',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Média da Contagem de Dados por Hora'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hora'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Média de Contagem'
+                    }
+                }
+            }
+        }
+    });
+
+   
     // Gráfico dos dados ordenados por tempo (Maior para Menor)
     const sortedContent = [...content].sort((a, b) => new Date(a[2]) - new Date(b[2]));
     const sortedTimes = sortedContent.map(row => new Date(row[2]));

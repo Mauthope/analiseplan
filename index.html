@@ -130,29 +130,34 @@
         tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
     }
 
-    function createCharts(parsedData) {
-        const { headers, content } = parsedData;
+   function createCharts(parsedData) {
+    const { headers, content } = parsedData;
 
-        // Agrupar os dados por hora
-        const hourlyData = {};
-        const hourlyCount = {};
-        content.forEach(row => {
-            const dateStr = row[2];
-            const value = parseFloat(row[1]);
-            const hour = new Date(dateStr).getHours();
-            if (!isNaN(value)) {
-                if (!hourlyData[hour]) {
-                    hourlyData[hour] = { total: 0, count: 0 };
-                }
-                hourlyData[hour].total += value;
-                hourlyData[hour].count += 1;
+    // Agrupar os dados por hora
+    const hourlyData = {};
+    const hourlyCount = {};  // Contagem de dados por hora
+    content.forEach(row => {
+        const dateStr = row[2];  // Coluna de data e hora (index 2)
+        const hour = new Date(dateStr).getHours();  // Extrair a hora
+        if (!hourlyCount[hour]) {
+            hourlyCount[hour] = [];
+        }
+        hourlyCount[hour].push(1); // Adiciona 1 para contar os dados dessa hora
+    });
 
-                if (!hourlyCount[hour]) {
-                    hourlyCount[hour] = 0;
-                }
-                hourlyCount[hour] += 1;
-            }
-        });
+    // Calcular a média arredondada por hora
+    const hours = [];
+    const averages = [];
+    for (let hour = 0; hour < 24; hour++) {
+        if (hourlyCount[hour] && hourlyCount[hour].length > 0) {
+            const average = Math.ceil(hourlyCount[hour].reduce((a, b) => a + b, 0) / hourlyCount[hour].length);
+            hours.push(`${hour}:00`);
+            averages.push(average);
+        } else {
+            hours.push(`${hour}:00`);
+            averages.push(0);  // Caso não haja dados para a hora
+        }
+    }
 
         // Calcular a média por hora
         const hours = [];
@@ -215,43 +220,50 @@
         });
 
         // Gráfico de contagem de dados por hora
-        window.chartInstance2 = new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: hours,
-                datasets: [{
-                    label: 'Quantidade de Dados por Hora',
-                    data: counts,
-                    backgroundColor: '#FF5722',
-                    borderColor: '#FF5722',
-                    borderWidth: 1,
-                }]
+      // Criação do gráfico de contagem de dados por hora (média arredondada)
+    const ctx2 = document.getElementById('countChart').getContext('2d');
+    if (window.chartInstance2) {
+        window.chartInstance2.destroy();
+    }
+
+    window.chartInstance2 = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Média de Dados por Hora',
+                data: averages,
+                backgroundColor: '#FF5722',
+                borderColor: '#FF5722',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Média de Dados por Hora (Arredondada para o Maior Inteiro)'
+                }
             },
-            options: {
-                responsive: true,
-                plugins: {
+            scales: {
+                x: {
                     title: {
                         display: true,
-                        text: 'Quantidade de Dados por Hora'
+                        text: 'Hora'
                     }
                 },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Hora'
-                        }
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Média de Dados'
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Número de Dados'
-                        }
-                    }
+                    beginAtZero: true
                 }
             }
-        });
-    }
+        }
+    });
+}
 
     function calculateStats(parsedData) {
         const { content } = parsedData;

@@ -76,6 +76,10 @@
             <h2>Gráfico de Tempo por Hora</h2>
             <canvas id="timeChart"></canvas>
         </div>
+        <div id="averageTimeChartContainer">
+            <h2>Média de Tempo por Hora</h2>
+            <canvas id="averageTimeChart"></canvas>
+        </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -92,6 +96,7 @@
                         createChart(filteredData);
                         createSortedChart(filteredData);
                         createTimeChart(filteredData);
+                        createAverageTimeChart(filteredData);
                         calculateStats(filteredData);
                     }
                 };
@@ -232,38 +237,72 @@
                     responsive: true,
                     plugins: {
                         legend: { position: 'top' },
-                        title: { display: true, text: 'Gráfico de Tempo por Hora' }
-                    },
-                    scales: {
-                        x: { title: { display: true, text: 'Hora do Dia' } },
-                        y: { title: { display: true, text: 'Ocorrências' } }
+                        title: { display: true, text: 'Gráfico de Atividade por Hora' }
                     }
                 }
             });
         }
 
-        function calculateStats(parsedData) {
+        function createAverageTimeChart(parsedData) {
+            const ctx = document.getElementById('averageTimeChart').getContext('2d');
             const { content } = parsedData;
-            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
-            if (values.length > 0) {
-                const sum = values.reduce((a, b) => a + b, 0);
-                const mean = (sum / values.length).toFixed(2);
-                const min = Math.min(...values).toFixed(2);
-                const max = Math.max(...values).toFixed(2);
-                const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+            const hourData = {};
+            content.forEach(row => {
+                const timestamp = row[2];
+                const value = parseFloat(row[1]);
+                const hour = new Date(timestamp).getHours();
+                if (!isNaN(hour) && !isNaN(value)) {
+                    if (!hourData[hour]) {
+                        hourData[hour] = { sum: 0, count: 0 };
+                    }
+                    hourData[hour].sum += value;
+                    hourData[hour].count += 1;
+                }
+            });
 
-                document.getElementById('stats').innerHTML = `
-                    <strong>Análise Estatística:</strong><br>
-                    Média: ${mean}<br>
-                    Mínimo: ${min}<br>
-                    Máximo: ${max}<br>
-                    Desvio Padrão: ${stdDev}
-                `;
-            } else {
-                document.getElementById('stats').innerHTML = '<strong>Nenhum dado válido disponível para análise.</strong>';
+            const labels = Object.keys(hourData).map(hour => `${hour}:00`);
+            const averages = Object.values(hourData).map(data => data.sum / data.count);
+
+            if (window.averageTimeChartInstance) {
+                window.averageTimeChartInstance.destroy();
             }
+
+            window.averageTimeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Média de Tempo por Hora',
+                        data: averages,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Média de Tempo por Hora' }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Horas'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Média de Tempo (minutos)'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
         }
-    </script>
 </body>
-</html>
+    </html>

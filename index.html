@@ -169,43 +169,37 @@
         }
     }
 
-    // Calcular a média de contagem
-    const totalCount = counts.reduce((a, b) => a + b, 0);
-    const averageCount = totalCount / counts.length;
+    // Calcular a média da contagem por hora
+    const totalHoursWithData = counts.filter(count => count > 0).length;
+    const averageCountPerHour = counts.reduce((total, count) => total + count, 0) / totalHoursWithData;
 
-    // Gráficos
+    // Exibir a média da contagem por hora no gráfico
     const ctx2 = document.getElementById('countChart').getContext('2d');
-
-    // Gráfico da contagem de dados por hora com a média da contagem
     new Chart(ctx2, {
         type: 'bar',
         data: {
             labels: hours,
-            datasets: [
-                {
-                    label: 'Contagem de Dados por Hora',
-                    data: counts,
-                    backgroundColor: '#FF9800',
-                    borderColor: '#FF9800',
-                    borderWidth: 1,
-                },
-                {
-                    label: 'Média da Contagem',
-                    data: new Array(counts.length).fill(averageCount),
-                    type: 'line',  // Linha para a média
-                    borderColor: '#2196F3',
-                    borderWidth: 2,
-                    fill: false,
-                    tension: 0.4,
-                }
-            ]
+            datasets: [{
+                label: 'Contagem de Dados por Hora',
+                data: counts,
+                backgroundColor: '#FF9800',
+                borderColor: '#FF9800',
+                borderWidth: 1,
+            }, {
+                label: 'Média de Contagem por Hora',
+                data: Array(hours.length).fill(averageCountPerHour), // Média da contagem
+                type: 'line', // Tipo de gráfico para mostrar como linha
+                borderColor: '#2196F3',
+                borderWidth: 2,
+                fill: false,
+            }]
         },
         options: {
             responsive: true,
             plugins: {
                 title: {
                     display: true,
-                    text: 'Contagem de Dados por Hora (Todos os Dados) com Média'
+                    text: 'Contagem de Dados por Hora com Média'
                 }
             },
             scales: {
@@ -224,8 +218,6 @@
             }
         }
     });
-
-
 
     // Gráfico da média por hora
     new Chart(ctx1, {

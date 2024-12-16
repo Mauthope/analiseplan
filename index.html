@@ -66,6 +66,8 @@
         <div id="chartContainer">
             <h2>Análise de Dados por Hora</h2>
             <canvas id="dataChart"></canvas>
+            <h3>Quantidade de Dados por Hora</h3>
+            <canvas id="countChart"></canvas>
             <p id="stats"></p>
         </div>
     </main>
@@ -81,7 +83,7 @@
                     if (parsedData.content.length > 0) {
                         const filteredData = filterOutliers(parsedData);
                         displayTable(filteredData);
-                        createChart(filteredData);
+                        createCharts(filteredData);
                         calculateStats(filteredData);
                     }
                 };
@@ -124,11 +126,12 @@
             tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
         }
 
-        function createChart(parsedData) {
+        function createCharts(parsedData) {
             const { headers, content } = parsedData;
 
             // Agrupar os dados por hora
             const hourlyData = {};
+            const hourlyCount = {};  // Contagem de dados por hora
             content.forEach(row => {
                 const dateStr = row[2];  // Coluna de data e hora (index 2)
                 const value = parseFloat(row[1]);
@@ -139,29 +142,43 @@
                     }
                     hourlyData[hour].total += value;
                     hourlyData[hour].count += 1;
+
+                    // Contagem de dados por hora
+                    if (!hourlyCount[hour]) {
+                        hourlyCount[hour] = 0;
+                    }
+                    hourlyCount[hour] += 1;
                 }
             });
 
             // Calcular a média por hora
             const hours = [];
             const averages = [];
+            const counts = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hourlyData[hour]) {
                     hours.push(`${hour}:00`);
                     averages.push(hourlyData[hour].total / hourlyData[hour].count);
+                    counts.push(hourlyCount[hour]);
                 } else {
                     hours.push(`${hour}:00`);
                     averages.push(0);  // Caso não haja dados para a hora
+                    counts.push(0);
                 }
             }
 
-            const ctx = document.getElementById('dataChart').getContext('2d');
+            const ctx1 = document.getElementById('dataChart').getContext('2d');
+            const ctx2 = document.getElementById('countChart').getContext('2d');
 
-            if (window.chartInstance) {
-                window.chartInstance.destroy();
+            if (window.chartInstance1) {
+                window.chartInstance1.destroy();
+            }
+            if (window.chartInstance2) {
+                window.chartInstance2.destroy();
             }
 
-            window.chartInstance = new Chart(ctx, {
+            // Gráfico da média por hora
+            window.chartInstance1 = new Chart(ctx1, {
                 type: 'line',
                 data: {
                     labels: hours,
@@ -192,6 +209,44 @@
                             title: {
                                 display: true,
                                 text: 'Média de Valores'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de contagem de dados por hora
+            window.chartInstance2 = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Quantidade de Dados por Hora',
+                        data: counts,
+                        backgroundColor: '#FF5722',
+                        borderColor: '#FF5722',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Quantidade de Dados por Hora'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hora'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Número de Dados'
                             }
                         }
                     }

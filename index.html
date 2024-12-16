@@ -79,7 +79,7 @@
         </div>
         <div id="averageTimeChartContainer">
             <h2>Média de Tempo por Hora</h2>
-            <canvas id="averageTimeChart"></canvas>
+            <canvas id="hourlyAverageChart"></canvas>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -230,57 +230,59 @@
         });
     }
 
-    function createHourlyAverageChart(parsedData) {
-        const { content } = parsedData;
+    // Função para criar o gráfico de média de tempo por hora (ajustado)
+function createHourlyAverageChart(parsedData) {
+    const { content } = parsedData;
 
-        const hourlyData = {};
-        content.forEach(row => {
-            const time = row[0];
-            const value = parseFloat(row[1]);
-            if (!isNaN(value)) {
-                const hour = time.split(':')[0]; // Extrai a hora
-                if (!hourlyData[hour]) hourlyData[hour] = { total: 0, count: 0 };
-                hourlyData[hour].total += value;
-                hourlyData[hour].count++;
-            }
-        });
-
-        const labels = Object.keys(hourlyData).sort();
-        const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count));
-
-        const ctx = document.getElementById('hourlyAverageChart').getContext('2d');
-        if (window.hourlyAverageChartInstance) {
-            window.hourlyAverageChartInstance.destroy();
+    const hourlyData = {};
+    content.forEach(row => {
+        const time = row[0];
+        const value = parseFloat(row[1]);
+        if (!isNaN(value)) {
+            const hour = time.split(':')[0]; // Extrai a hora
+            if (!hourlyData[hour]) hourlyData[hour] = { total: 0, count: 0 };
+            hourlyData[hour].total += value;
+            hourlyData[hour].count++;
         }
+    });
 
-        window.hourlyAverageChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Média por Hora',
-                        data: averages,
-                        borderColor: '#673AB7',
-                        backgroundColor: '#D1C4E9',
-                        fill: true,
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: true },
-                    title: { display: true, text: 'Média de Valores por Hora' }
-                },
-                scales: {
-                    x: { title: { display: true, text: 'Horas' } },
-                    y: { title: { display: true, text: 'Média dos Valores' } }
-                }
-            }
-        });
+    const labels = Object.keys(hourlyData).sort();
+    const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count));
+
+    const ctx = document.getElementById('hourlyAverageChart').getContext('2d');
+    if (window.hourlyAverageChartInstance) {
+        window.hourlyAverageChartInstance.destroy();
     }
+
+    window.hourlyAverageChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Média por Hora',
+                    data: averages,
+                    borderColor: '#673AB7',
+                    backgroundColor: '#D1C4E9',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true },
+                title: { display: true, text: 'Média de Valores por Hora' }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Horas' } },
+                y: { title: { display: true, text: 'Média dos Valores' } }
+            }
+        }
+    });
+}
+
 
     function calculateStats(parsedData) {
         const { content } = parsedData;

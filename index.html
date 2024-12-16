@@ -68,6 +68,14 @@
             <canvas id="dataChart"></canvas>
             <p id="stats"></p>
         </div>
+        <div id="sortedChartContainer">
+            <h2>Gráfico Ordenado</h2>
+            <canvas id="sortedChart"></canvas>
+        </div>
+        <div id="timeChartContainer">
+            <h2>Gráfico de Tempo por Hora</h2>
+            <canvas id="timeChart"></canvas>
+        </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -82,6 +90,8 @@
                         const filteredData = filterOutliers(parsedData);
                         displayTable(filteredData);
                         createChart(filteredData);
+                        createSortedChart(filteredData);
+                        createTimeChart(filteredData);
                         calculateStats(filteredData);
                     }
                 };
@@ -130,11 +140,6 @@
             const labels = content.map(row => row[0]);
             const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
 
-            const mean = values.reduce((a, b) => a + b, 0) / values.length;
-            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
-            const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
-                                      .reduce((a, b) => a + b, 0) / values.length;
-
             if (window.chartInstance) {
                 window.chartInstance.destroy();
             }
@@ -143,67 +148,95 @@
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: 'Valores',
-                            data: values,
-                            backgroundColor: values.map(value => value > mean ? '#FF5722' : '#4CAF50'),
-                            borderColor: '#388E3C',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Média Geral',
-                            data: Array(values.length).fill(mean),
-                            type: 'line',
-                            borderColor: '#FF9800',
-                            borderWidth: 2,
-                            fill: false
-                        },
-                        {
-                            label: 'Média Limitada (1 DP)',
-                            data: Array(values.length).fill(boundedMean),
-                            type: 'line',
-                            borderColor: '#03A9F4',
-                            borderWidth: 2,
-                            fill: false
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Valores',
+                        data: values,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#388E3C',
+                        borderWidth: 1
+                    }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Distribuição de Valores com Linhas de Média'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                afterBody: function(context) {
-                                    const index = context[0].dataIndex;
-                                    if (values[index] > mean) {
-                                        return 'Data/Hora: ' + labels[index];
-                                    }
-                                    return '';
-                                }
-                            }
-                        }
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Gráfico Original' }
+                    }
+                }
+            });
+        }
+
+        function createSortedChart(parsedData) {
+            const { headers, content } = parsedData;
+            const ctx = document.getElementById('sortedChart').getContext('2d');
+            const sortedContent = content.slice().sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
+            const labels = sortedContent.map(row => row[0]);
+            const values = sortedContent.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+            if (window.sortedChartInstance) {
+                window.sortedChartInstance.destroy();
+            }
+
+            window.sortedChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Valores Ordenados',
+                        data: values,
+                        backgroundColor: '#2196F3',
+                        borderColor: '#1E88E5',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Gráfico Ordenado (Maior para Menor)' }
+                    }
+                }
+            });
+        }
+
+        function createTimeChart(parsedData) {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            const { content } = parsedData;
+
+            const hours = new Array(24).fill(0);
+            content.forEach(row => {
+                const timestamp = row[2];
+                const hour = new Date(timestamp).getHours();
+                if (!isNaN(hour)) {
+                    hours[hour] += 1;
+                }
+            });
+
+            if (window.timeChartInstance) {
+                window.timeChartInstance.destroy();
+            }
+
+            window.timeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hours.map((_, i) => `${i}:00`),
+                    datasets: [{
+                        label: 'Atividade por Hora',
+                        data: hours,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Gráfico de Tempo por Hora' }
                     },
                     scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: headers[0]
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Valores'
-                            }
-                        }
+                        x: { title: { display: true, text: 'Hora do Dia' } },
+                        y: { title: { display: true, text: 'Ocorrências' } }
                     }
                 }
             });
@@ -219,15 +252,12 @@
                 const min = Math.min(...values).toFixed(2);
                 const max = Math.max(...values).toFixed(2);
                 const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length).toFixed(2);
-                const boundedMean = values.filter(value => value >= mean - stdDev && value <= mean + stdDev)
-                                          .reduce((a, b) => a + b, 0) / values.length;
 
                 document.getElementById('stats').innerHTML = `
                     <strong>Análise Estatística:</strong><br>
-                    Média Geral: ${mean}<br>
-                    Média Limitada (1 DP): ${boundedMean.toFixed(2)}<br>
-                    Valor Mínimo: ${min}<br>
-                    Valor Máximo: ${max}<br>
+                    Média: ${mean}<br>
+                    Mínimo: ${min}<br>
+                    Máximo: ${max}<br>
                     Desvio Padrão: ${stdDev}
                 `;
             } else {

@@ -238,12 +238,12 @@ function createHourlyAverageChart(parsedData) {
 
     // Percorre cada linha dos dados
     content.forEach(row => {
-        const datetime = row[0]; // A primeira coluna contém a data e hora (por exemplo, '2024-12-16 07:00')
+        const datetime = row[0]; // A primeira coluna contém a data e hora (por exemplo, '06/12/2024 14:50:57')
         const value = parseFloat(row[1]); // A segunda coluna contém o tempo em minutos ou outro valor numérico
 
         if (!isNaN(value)) {
-            // Extrai a hora da data e hora (ex: '2024-12-16 07:00' -> '07')
-            const hour = datetime.split(' ')[1].split(':')[0]; // Pega a hora da string no formato 'HH:MM'
+            // Extrai a hora da data e hora no formato 'DD/MM/YYYY HH:MM:SS'
+            const hour = datetime.split(' ')[1].split(':')[0]; // Pega a hora da string no formato 'HH:MM:SS'
 
             if (!hourlyData[hour]) hourlyData[hour] = { total: 0, count: 0 };
             hourlyData[hour].total += value;
@@ -251,7 +251,7 @@ function createHourlyAverageChart(parsedData) {
         }
     });
 
-    const labels = Object.keys(hourlyData).sort(); // Ordena as horas (ex: '7', '8', '9'...)
+    const labels = Object.keys(hourlyData).sort(); // Ordena as horas (ex: '14', '15', '16'...)
     const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count)); // Calcula a média
 
     // Criação do gráfico
@@ -263,7 +263,7 @@ function createHourlyAverageChart(parsedData) {
     window.timeChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels, // As horas (7, 8, 9, ...)
+            labels: labels, // As horas (14, 15, 16, ...)
             datasets: [
                 {
                     label: 'Média de Tempo por Hora',

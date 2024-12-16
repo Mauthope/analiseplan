@@ -131,9 +131,8 @@
         function createCharts(parsedData) {
             const { headers, content } = parsedData;
 
-            // Agrupar os dados por hora
+            // Agrupar os dados por hora e calcular a soma e a média por hora
             const hourlyData = {};
-            const hourlyCount = {};  // Contagem de dados por hora
             content.forEach(row => {
                 const dateStr = row[2];  // Coluna de data e hora (index 2)
                 const value = parseFloat(row[1]);
@@ -144,28 +143,19 @@
                     }
                     hourlyData[hour].total += value;
                     hourlyData[hour].count += 1;
-
-                    // Contagem de dados por hora
-                    if (!hourlyCount[hour]) {
-                        hourlyCount[hour] = 0;
-                    }
-                    hourlyCount[hour] += 1;
                 }
             });
 
             // Calcular a média por hora
             const hours = [];
             const averages = [];
-            const counts = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hourlyData[hour]) {
                     hours.push(`${hour}:00`);
                     averages.push(hourlyData[hour].total / hourlyData[hour].count);
-                    counts.push(hourlyCount[hour]);
                 } else {
                     hours.push(`${hour}:00`);
                     averages.push(0);  // Caso não haja dados para a hora
-                    counts.push(0);
                 }
             }
 
@@ -175,14 +165,14 @@
             const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
             const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
 
-            // Gráfico da contagem de dados por hora
+            // Gráfico da média de dados por hora
             new Chart(ctx2, {
                 type: 'bar',
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Contagem de Dados por Hora',
-                        data: counts,
+                        label: 'Média de Dados por Hora',
+                        data: averages,
                         backgroundColor: '#FF9800',
                         borderColor: '#FF9800',
                         borderWidth: 1,
@@ -193,7 +183,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem de Dados por Hora (Todos os Dados)'
+                            text: 'Média de Dados por Hora'
                         }
                     },
                     scales: {
@@ -206,7 +196,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Número de Dados'
+                                text: 'Média de Dados'
                             }
                         }
                     }
@@ -312,9 +302,8 @@
                     }, {
                         label: 'Linha Média',
                         data: Array(sortedTimes.length).fill(averages.reduce((a, b) => a + b, 0) / averages.length),
-                        borderColor: '#8BC34A',
-                        fill: false,
-                        borderWidth: 1,
+                        borderColor: '#FFEB3B',
+                        borderWidth: 2,
                         borderDash: [5, 5],
                     }]
                 },
@@ -323,7 +312,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Tempo Individual com Linha Média'
+                            text: 'Tempo Individual de Cada Dado com Linha Média'
                         }
                     },
                     scales: {

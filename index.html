@@ -77,308 +77,189 @@
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const csvData = e.target.result;
-                    const parsedData = parseCSV(csvData);
-                    if (parsedData.content.length > 0) {
-                        const filteredData = filterOutliers(parsedData);
-                        displayTable(filteredData);
-                        createCharts(filteredData);
-                        calculateStats(filteredData);
-                    }
-                };
-                reader.readAsText(file);
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvData = e.target.result;
+                const parsedData = parseCSV(csvData);
+                if (parsedData.content.length > 0) {
+                    const filteredData = filterOutliers(parsedData);
+                    displayTable(filteredData);
+                    createCharts(filteredData);
+                    calculateStats(filteredData);
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function parseCSV(data) {
+        const rows = data.split('\n').filter(row => row.trim() !== '');
+        const headers = rows[0].split(',').map(header => header.replace(/(^"|"$)/g, '').trim());
+        const content = rows.slice(1).map(row => 
+            row.split(',').map(cell => cell.replace(/(^"|"$)/g, '').trim())
+        );
+        return { headers, content };
+    }
+
+    function filterOutliers(parsedData) {
+        const { content } = parsedData;
+        const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+        const lowerBound = mean - 2 * stdDev;
+        const upperBound = mean + 2 * stdDev;
+
+        const filteredContent = content.filter(row => {
+            const value = parseFloat(row[1]);
+            return !isNaN(value) && value >= lowerBound && value <= upperBound;
+        });
+
+        return { headers: parsedData.headers, content: filteredContent };
+    }
+
+    function displayTable(parsedData) {
+        const { headers, content } = parsedData;
+        const tableHead = document.querySelector('#dataTable thead');
+        const tableBody = document.querySelector('#dataTable tbody');
+
+        tableHead.innerHTML = '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
+        tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
+    }
+
+    function createCharts(parsedData) {
+        const { headers, content } = parsedData;
+
+        // Agrupar os dados por hora
+        const hourlyData = {};
+        const hourlyCount = {};
+        content.forEach(row => {
+            const dateStr = row[2];
+            const value = parseFloat(row[1]);
+            const hour = new Date(dateStr).getHours();
+            if (!isNaN(value)) {
+                if (!hourlyData[hour]) {
+                    hourlyData[hour] = { total: 0, count: 0 };
+                }
+                hourlyData[hour].total += value;
+                hourlyData[hour].count += 1;
+
+                if (!hourlyCount[hour]) {
+                    hourlyCount[hour] = 0;
+                }
+                hourlyCount[hour] += 1;
             }
         });
 
-        function parseCSV(data) {
-            const rows = data.split('\n').filter(row => row.trim() !== '');
-            const headers = rows[0].split(',').map(header => header.replace(/(^"|"$)/g, '').trim());
-            const content = rows.slice(1).map(row => 
-                row.split(',').map(cell => cell.replace(/(^"|"$)/g, '').trim())
-            );
-            return { headers, content };
+        // Calcular a média por hora
+        const hours = [];
+        const averages = [];
+        const counts = [];
+        for (let hour = 0; hour < 24; hour++) {
+            if (hourlyData[hour]) {
+                hours.push(`${hour}:00`);
+                averages.push(hourlyData[hour].total / hourlyData[hour].count);
+                counts.push(hourlyCount[hour]);
+            } else {
+                hours.push(`${hour}:00`);
+                averages.push(0);
+                counts.push(0);
+            }
         }
 
-        function filterOutliers(parsedData) {
-            const { content } = parsedData;
-            const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+        const ctx1 = document.getElementById('dataChart').getContext('2d');
+        const ctx2 = document.getElementById('countChart').getContext('2d');
 
-            const mean = values.reduce((a, b) => a + b, 0) / values.length;
-            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
-            const lowerBound = mean - 2 * stdDev;
-            const upperBound = mean + 2 * stdDev;
+        if (window.chartInstance1) window.chartInstance1.destroy();
+        if (window.chartInstance2) window.chartInstance2.destroy();
 
-            const filteredContent = content.filter(row => {
-                const value = parseFloat(row[1]);
-                return !isNaN(value) && value >= lowerBound && value <= upperBound;
-            });
-
-            return { headers: parsedData.headers, content: filteredContent };
-        }
-
-        function displayTable(parsedData) {
-            const { headers, content } = parsedData;
-            const tableHead = document.querySelector('#dataTable thead');
-            const tableBody = document.querySelector('#dataTable tbody');
-
-            tableHead.innerHTML = '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
-            tableBody.innerHTML = content.slice(0, 10).map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
-        }
-
-        function createCharts(parsedData) {
-            const { headers, content } = parsedData;
-
-            // Agrupar os dados por hora
-            const hourlyData = {};
-            const hourlyCount = {};  // Contagem de dados por hora
-            content.forEach(row => {
-                const dateStr = row[2];  // Coluna de data e hora (index 2)
-                const value = parseFloat(row[1]);
-                const hour = new Date(dateStr).getHours();  // Extrair a hora
-                if (!isNaN(value)) {
-                    if (!hourlyData[hour]) {
-                        hourlyData[hour] = { total: 0, count: 0 };
+        // Gráfico da média por hora
+        window.chartInstance1 = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: hours,
+                datasets: [{
+                    label: 'Média por Hora',
+                    data: averages,
+                    borderColor: '#4CAF50',
+                    borderWidth: 2,
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Média dos Valores por Hora'
                     }
-                    hourlyData[hour].total += value;
-                    hourlyData[hour].count += 1;
-
-                    // Contagem de dados por hora
-                    if (!hourlyCount[hour]) {
-                        hourlyCount[hour] = 0;
-                    }
-                    hourlyCount[hour] += 1;
-                }
-            });
-
-            // Calcular a média por hora
-            const hours = [];
-            const averages = [];
-            const counts = [];
-            for (let hour = 0; hour < 24; hour++) {
-                if (hourlyData[hour]) {
-                    hours.push(`${hour}:00`);
-                    averages.push(hourlyData[hour].total / hourlyData[hour].count);
-                    counts.push(hourlyCount[hour]);
-                } else {
-                    hours.push(`${hour}:00`);
-                    averages.push(0);  // Caso não haja dados para a hora
-                    counts.push(0);
-                }
-            }
-
-            // Dados ordenados por tempo (do maior para o menor)
-            const sortedData = content.map(row => ({
-                time: parseFloat(row[1]),  // Valor do tempo
-                label: row[2]  // Data e hora
-            })).sort((a, b) => b.time - a.time);  // Ordenar em ordem decrescente
-
-            const sortedTimes = sortedData.map(item => item.time);
-            const sortedLabels = sortedData.map(item => item.label);
-
-            // Dados para o gráfico de tempo individual
-            const individualTimes = content.map(row => parseFloat(row[1]));
-            const meanTime = individualTimes.reduce((a, b) => a + b, 0) / individualTimes.length;
-
-            const ctx1 = document.getElementById('dataChart').getContext('2d');
-            const ctx2 = document.getElementById('countChart').getContext('2d');
-            const ctx3 = document.getElementById('sortedTimeChart').getContext('2d');
-            const ctx4 = document.getElementById('individualTimeChart').getContext('2d');
-
-            if (window.chartInstance1) {
-                window.chartInstance1.destroy();
-            }
-            if (window.chartInstance2) {
-                window.chartInstance2.destroy();
-            }
-            if (window.chartInstance3) {
-                window.chartInstance3.destroy();
-            }
-            if (window.chartInstance4) {
-                window.chartInstance4.destroy();
-            }
-
-            // Gráfico da média por hora
-            window.chartInstance1 = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Média por Hora',
-                        data: averages,
-                        borderColor: '#4CAF50',
-                        borderWidth: 2,
-                        fill: false,
-                    }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
+                scales: {
+                    x: {
                         title: {
                             display: true,
-                            text: 'Média dos Valores por Hora'
+                            text: 'Hora'
                         }
                     },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Média de Valores'
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de contagem de dados por hora
-            window.chartInstance2 = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: hours,
-                    datasets: [{
-                        label: 'Quantidade de Dados por Hora',
-                        data: counts,
-                        backgroundColor: '#FF5722',
-                        borderColor: '#FF5722',
-                        borderWidth: 1,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
+                    y: {
                         title: {
                             display: true,
-                            text: 'Quantidade de Dados por Hora'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Número de Dados'
-                            }
+                            text: 'Média de Valores'
                         }
                     }
                 }
-            });
+            }
+        });
 
-            // Gráfico dos dados ordenados por tempo
-            window.chartInstance3 = new Chart(ctx3, {
-                type: 'bar',
-                data: {
-                    labels: sortedLabels,
-                    datasets: [{
-                        label: 'Tempo',
-                        data: sortedTimes,
-                        backgroundColor: '#2196F3',
-                        borderColor: '#2196F3',
-                        borderWidth: 1,
-                    }]
+        // Gráfico de contagem de dados por hora
+        window.chartInstance2 = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: hours,
+                datasets: [{
+                    label: 'Quantidade de Dados por Hora',
+                    data: counts,
+                    backgroundColor: '#FF5722',
+                    borderColor: '#FF5722',
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Quantidade de Dados por Hora'
+                    }
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
+                scales: {
+                    x: {
                         title: {
                             display: true,
-                            text: 'Dados Ordenados por Tempo'
+                            text: 'Hora'
                         }
                     },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Data e Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tempo (em unidades)'
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico do tempo individual com linha média
-            window.chartInstance4 = new Chart(ctx4, {
-                type: 'bar',
-                data: {
-                    labels: content.map((_, index) => `Dado ${index + 1}`),
-                    datasets: [{
-                        label: 'Tempo de Cada Dado',
-                        data: individualTimes,
-                        backgroundColor: '#8BC34A',
-                        borderColor: '#8BC34A',
-                        borderWidth: 1,
-                    },
-                    {
-                        label: 'Média do Tempo',
-                        data: Array(individualTimes.length).fill(meanTime),
-                        type: 'line',
-                        borderColor: '#FF9800',
-                        borderWidth: 2,
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
+                    y: {
                         title: {
                             display: true,
-                            text: 'Tempo Individual de Cada Dado com Linha Média'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Dado'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tempo'
-                            }
+                            text: 'Número de Dados'
                         }
                     }
                 }
-            });
-        }
+            }
+        });
+    }
 
-        function calculateStats(parsedData) {
-            const individualTimes = parsedData.content.map(row => parseFloat(row[1]));
-            const meanTime = individualTimes.reduce((a, b) => a + b, 0) / individualTimes.length;
-            const maxTime = Math.max(...individualTimes);
-            const minTime = Math.min(...individualTimes);
-            const totalTime = individualTimes.reduce((a, b) => a + b, 0);
+    function calculateStats(parsedData) {
+        const { content } = parsedData;
+        const values = content.map(row => parseFloat(row[1])).filter(val => !isNaN(val));
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        document.getElementById('stats').textContent = `Média geral dos valores: ${mean.toFixed(2)}`;
+    }
+</script>
 
-            const statsElement = document.getElementById('stats');
-            statsElement.innerHTML = `
-                <strong>Estatísticas dos Dados:</strong><br>
-                Tempo Máximo: ${maxTime}<br>
-                Tempo Mínimo: ${minTime}<br>
-                Tempo Médio: ${meanTime}<br>
-                Tempo Total: ${totalTime}
-            `;
-        }
-    </script>
 </body>
 </html>

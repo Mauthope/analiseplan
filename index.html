@@ -234,6 +234,8 @@
 function createHourlyAverageChart(parsedData) {
     const { content } = parsedData;
 
+    console.log('Dados do CSV:', content); // Verificar se o CSV foi lido corretamente
+
     const hourlyData = {};
 
     // Percorre cada linha dos dados
@@ -251,11 +253,21 @@ function createHourlyAverageChart(parsedData) {
         }
     });
 
+    console.log('Dados agrupados por hora:', hourlyData); // Verificar os dados agrupados
+
     const labels = Object.keys(hourlyData).sort(); // Ordena as horas (ex: '14', '15', '16'...)
     const averages = labels.map(hour => (hourlyData[hour].total / hourlyData[hour].count)); // Calcula a média
 
-    // Criação do gráfico
-    const ctx = document.getElementById('timeChart').getContext('2d');
+    console.log('Labels:', labels); // Verificar as horas
+    console.log('Médias:', averages); // Verificar as médias
+
+    // Verificar se o elemento de canvas existe
+    const ctx = document.getElementById('timeChart')?.getContext('2d');
+    if (!ctx) {
+        console.error('Elemento canvas não encontrado!');
+        return;
+    }
+
     if (window.timeChartInstance) {
         window.timeChartInstance.destroy(); // Destruir instância anterior do gráfico
     }
@@ -288,6 +300,7 @@ function createHourlyAverageChart(parsedData) {
         }
     });
 }
+
 
     function calculateStats(parsedData) {
         const { content } = parsedData;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Média de Dados por Hora</title>
+    <title>Desvio Padrão e Contagem</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,7 +44,7 @@
 </head>
 <body>
     <header>
-        <h1>Média de Dados por Hora</h1>
+        <h1>Desvio Padrão e Contagem</h1>
     </header>
     <main>
         <div class="controls">
@@ -61,10 +61,8 @@
             <canvas id="averageChart"></canvas>
             <h2>Contagem por Hora</h2>
             <canvas id="countChart"></canvas>
-            <h2>Valores da Coluna 2 (Decrescente)</h2>
-            <canvas id="valuesChart"></canvas>
-            <h2>Média dos Valores (Excluindo Valores Acima de 2 Desvios Padrões)</h2>
-            <canvas id="filteredAverageChart"></canvas>
+            <h2>Valores em Ordem Decrescente</h2>
+            <canvas id="orderedValuesChart"></canvas>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -80,8 +78,7 @@
                     if (globalData.content.length > 0) {
                         createAverageChart(globalData);
                         createCountChart(globalData);
-                        createValuesChart(globalData);
-                        createFilteredAverageChart(globalData);
+                        createOrderedValuesChart(globalData);
                     } else {
                         alert('Nenhum dado válido encontrado no arquivo CSV.');
                     }
@@ -94,8 +91,7 @@
             if (globalData.content) {
                 createAverageChart(globalData);
                 createCountChart(globalData);
-                createValuesChart(globalData);
-                createFilteredAverageChart(globalData);
+                createOrderedValuesChart(globalData);
             }
         });
 
@@ -111,6 +107,18 @@
             const [day, month, year] = datePart.split('/').map(Number);
             const [hours, minutes, seconds] = timePart.split(':').map(Number);
             return new Date(year, month - 1, day, hours, minutes, seconds);
+        }
+
+        function calculateStandardDeviation(values) {
+            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
+            const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
+            return Math.sqrt(variance);
+        }
+
+        function filterDataByStandardDeviation(values) {
+            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
+            const stdDev = calculateStandardDeviation(values);
+            return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
         }
 
         function createAverageChart(parsedData) {
@@ -265,22 +273,27 @@
             });
         }
 
-        function createValuesChart(parsedData) {
+        function createOrderedValuesChart(parsedData) {
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-            values.sort((a, b) => b - a); // Organiza os valores em ordem decrescente
 
-            const ctx = document.getElementById('valuesChart').getContext('2d');
-            if (window.myValuesChart) window.myValuesChart.destroy();
-            window.myValuesChart = new Chart(ctx, {
+            // Filtra os valores acima de 2 desvios padrões
+            const filteredValues = filterDataByStandardDeviation(values);
+
+            // Ordena os valores em ordem decrescente
+            const sortedValues = filteredValues.sort((a, b) => b - a);
+
+            const ctx = document.getElementById('orderedValuesChart').getContext('2d');
+            if (window.myOrderedValuesChart) window.myOrderedValuesChart.destroy();
+            window.myOrderedValuesChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: values.map((_, index) => `Valor ${index + 1}`),
+                    labels: sortedValues.map((_, index) => `Valor ${index + 1}`),
                     datasets: [{
-                        label: 'Valores da Coluna 2 (Decrescente)',
-                        data: values,
-                        backgroundColor: '#FF9800',
-                        borderColor: '#FB8C00',
+                        label: 'Valores da Coluna 2',
+                        data: sortedValues,
+                        backgroundColor: '#FF5722',
+                        borderColor: '#E64A19',
                         borderWidth: 1,
                     }]
                 },
@@ -289,7 +302,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Valores da Coluna 2 em Ordem Decrescente'
+                            text: 'Valores da Coluna 2 (Ordenados)'
                         }
                     },
                     scales: {
@@ -297,58 +310,6 @@
                             title: {
                                 display: true,
                                 text: 'Índice'
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Valor'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createFilteredAverageChart(parsedData) {
-            const content = parsedData.content;
-            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-            const stdDev = Math.sqrt(values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length);
-
-            // Filtrando os valores que estão acima de 2 desvios padrões
-            const filteredValues = values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
-
-            const filteredMean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length;
-
-            const ctx = document.getElementById('filteredAverageChart').getContext('2d');
-            if (window.myFilteredAverageChart) window.myFilteredAverageChart.destroy();
-            window.myFilteredAverageChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Média Excluindo Desvios Padrões'],
-                    datasets: [{
-                        label: 'Média (Excluindo Valores Acima de 2 Desvios Padrões)',
-                        data: [filteredMean],
-                        backgroundColor: '#8BC34A',
-                        borderColor: '#689F38',
-                        borderWidth: 1,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Média Desconsiderando Valores Acima de 2 Desvios Padrões'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Média'
                             }
                         },
                         y: {

@@ -118,7 +118,7 @@
         function filterDataByStandardDeviation(values) {
             const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
             const stdDev = calculateStandardDeviation(values);
-            return values.filter(value => Math.abs(value - mean) <= 2.5 * stdDev);
+            return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
         }
 
         function createAverageChart(parsedData) {
@@ -155,9 +155,6 @@
                 }
             }
 
-            // Filtra os valores da média por desvio padrão
-            const filteredAverages = filterDataByStandardDeviation(averages);
-
             const ctx = document.getElementById('averageChart').getContext('2d');
             if (window.myChart) window.myChart.destroy();
             window.myChart = new Chart(ctx, {
@@ -166,7 +163,7 @@
                     labels: hours,
                     datasets: [{
                         label: 'Média de Dados por Hora',
-                        data: filteredAverages,
+                        data: averages,
                         backgroundColor: '#4CAF50',
                         borderColor: '#388E3C',
                         borderWidth: 1,
@@ -235,20 +232,17 @@
                 }
             }
 
-            // Filtra as contagens por desvio padrão
-            const filteredAverages = filterDataByStandardDeviation(averages);
-
             const ctx = document.getElementById('countChart').getContext('2d');
-            if (window.myChart2) window.myChart2.destroy();
-            window.myChart2 = new Chart(ctx, {
+            if (window.myCountChart) window.myCountChart.destroy();
+            window.myCountChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: hours,
                     datasets: [{
                         label: 'Contagem por Hora',
-                        data: filteredAverages,
-                        backgroundColor: '#FF5733',
-                        borderColor: '#C44E2D',
+                        data: averages,
+                        backgroundColor: '#2196F3',
+                        borderColor: '#1976D2',
                         borderWidth: 1,
                     }]
                 },
@@ -257,7 +251,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem por Hora'
+                            text: 'Contagem de Ocorrências por Hora'
                         }
                     },
                     scales: {
@@ -271,7 +265,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Contagem'
+                                text: 'Média de Contagem'
                             }
                         }
                     }
@@ -283,20 +277,23 @@
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
 
+            // Filtra os valores acima de 2 desvios padrões
+            const filteredValues = filterDataByStandardDeviation(values);
+
             // Ordena os valores em ordem decrescente
-            values.sort((a, b) => b - a);
+            const sortedValues = filteredValues.sort((a, b) => b - a);
 
             const ctx = document.getElementById('orderedValuesChart').getContext('2d');
-            if (window.myChart3) window.myChart3.destroy();
-            window.myChart3 = new Chart(ctx, {
+            if (window.myOrderedValuesChart) window.myOrderedValuesChart.destroy();
+            window.myOrderedValuesChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: values.map((_, index) => `Valor ${index + 1}`),
+                    labels: sortedValues.map((_, index) => `Valor ${index + 1}`),
                     datasets: [{
-                        label: 'Valores Ordenados Decrescentemente',
-                        data: values,
-                        backgroundColor: '#2196F3',
-                        borderColor: '#1976D2',
+                        label: 'Valores da Coluna 2',
+                        data: sortedValues,
+                        backgroundColor: '#FF5722',
+                        borderColor: '#E64A19',
                         borderWidth: 1,
                     }]
                 },
@@ -305,14 +302,14 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Valores em Ordem Decrescente'
+                            text: 'Valores da Coluna 2 (Ordenados)'
                         }
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Valores'
+                                text: 'Índice'
                             }
                         },
                         y: {

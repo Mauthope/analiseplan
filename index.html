@@ -40,6 +40,22 @@
             max-width: 100%;
             height: 400px;
         }
+        #summary {
+            background-color: #f1f1f1;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        #summary h3 {
+            margin-bottom: 0.5rem;
+        }
+        #summary .stat {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -56,6 +72,7 @@
             <input type="time" id="endHour" value="23:59">
             <button id="filterButton">Filtrar Dados</button>
         </div>
+        <div id="summary"></div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>
             <canvas id="averageChart"></canvas>
@@ -76,6 +93,7 @@
                     const csvData = e.target.result;
                     globalData = parseCSV(csvData);
                     if (globalData.content.length > 0) {
+                        updateSummary(globalData);
                         createAverageChart(globalData);
                         createCountChart(globalData);
                         createOrderedValuesChart(globalData);
@@ -115,10 +133,46 @@
             return Math.sqrt(variance);
         }
 
-        function filterDataByStandardDeviation(values) {
+        function filterDataByStandardDeviation(values, stdDevFactor) {
             const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
             const stdDev = calculateStandardDeviation(values);
-            return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
+            return values.filter(value => Math.abs(value - mean) <= stdDevFactor * stdDev);
+        }
+
+        function updateSummary(parsedData) {
+            const content = parsedData.content;
+            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
+            
+            const stats = {
+                1: getStats(values, 1),
+                2: getStats(values, 2),
+                3: getStats(values, 3),
+            };
+            
+            const summaryDiv = document.getElementById('summary');
+            summaryDiv.innerHTML = `
+                <h3>Resumo Estatístico (Valores da Coluna 2)</h3>
+                <div class="stat">
+                    <strong>Desvio Padrão 1:</strong>
+                    Máximo: ${stats[1].max}, Mínimo: ${stats[1].min}, Média: ${stats[1].mean.toFixed(2)}
+                </div>
+                <div class="stat">
+                    <strong>Desvio Padrão 2:</strong>
+                    Máximo: ${stats[2].max}, Mínimo: ${stats[2].min}, Média: ${stats[2].mean.toFixed(2)}
+                </div>
+                <div class="stat">
+                    <strong>Desvio Padrão 3:</strong>
+                    Máximo: ${stats[3].max}, Mínimo: ${stats[3].min}, Média: ${stats[3].mean.toFixed(2)}
+                </div>
+            `;
+        }
+
+        function getStats(values, stdDevFactor) {
+            const filteredValues = filterDataByStandardDeviation(values, stdDevFactor);
+            const max = Math.max(...filteredValues);
+            const min = Math.min(...filteredValues);
+            const mean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length;
+            return { max, min, mean };
         }
 
         function createAverageChart(parsedData) {
@@ -171,25 +225,12 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Média de Dados por Hora'
-                        }
-                    },
                     scales: {
                         x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
+                            beginAtZero: true
                         },
                         y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Média'
-                            }
+                            beginAtZero: true
                         }
                     }
                 }
@@ -200,73 +241,52 @@
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
-            const hourlyCounts = Array.from({ length: 24 }, () => 0);
-            const hourlyDays = Array.from({ length: 24 }, () => new Set());
+            const hourlyData = Array.from({ length: 24 }, () => 0);
 
             content.forEach(row => {
-                const value = row[1]; // Coluna 2
                 const dateStr = row[2];
                 if (dateStr) {
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
                         if (hour >= startHour && hour <= endHour) {
-                            hourlyCounts[hour]++;
-                            hourlyDays[hour].add(date.toDateString());  // Armazena o dia (evita contagens duplicadas por dia)
+                            hourlyData[hour]++;
                         }
                     }
                 }
             });
 
             const hours = [];
-            const averages = [];
+            const counts = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    const uniqueDays = hourlyDays[hour].size;  // Número de dias únicos para aquela hora
-                    if (uniqueDays > 0) {
-                        averages.push(Math.ceil(hourlyCounts[hour] / uniqueDays));  // Média das contagens por hora, arredondada para cima
-                    } else {
-                        averages.push(0);
-                    }
+                    counts.push(hourlyData[hour]);
                 }
             }
 
             const ctx = document.getElementById('countChart').getContext('2d');
-            if (window.myCountChart) window.myCountChart.destroy();
-            window.myCountChart = new Chart(ctx, {
+            if (window.myChartCount) window.myChartCount.destroy();
+            window.myChartCount = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Contagem por Hora',
-                        data: averages,
-                        backgroundColor: '#2196F3',
-                        borderColor: '#1976D2',
+                        label: 'Contagem de Dados por Hora',
+                        data: counts,
+                        backgroundColor: '#FF9800',
+                        borderColor: '#FB8C00',
                         borderWidth: 1,
                     }]
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Contagem de Ocorrências por Hora'
-                        }
-                    },
                     scales: {
                         x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
+                            beginAtZero: true
                         },
                         y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Média de Contagem'
-                            }
+                            beginAtZero: true
                         }
                     }
                 }
@@ -276,48 +296,29 @@
         function createOrderedValuesChart(parsedData) {
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-
-            // Filtra os valores acima de 2 desvios padrões
-            const filteredValues = filterDataByStandardDeviation(values);
-
-            // Ordena os valores em ordem decrescente
-            const sortedValues = filteredValues.sort((a, b) => b - a);
-
+            const sortedValues = values.sort((a, b) => b - a);
             const ctx = document.getElementById('orderedValuesChart').getContext('2d');
-            if (window.myOrderedValuesChart) window.myOrderedValuesChart.destroy();
-            window.myOrderedValuesChart = new Chart(ctx, {
+            if (window.myChartOrdered) window.myChartOrdered.destroy();
+            window.myChartOrdered = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: sortedValues.map((_, index) => `Valor ${index + 1}`),
+                    labels: sortedValues.map((value, index) => `Valor ${index + 1}`),
                     datasets: [{
-                        label: 'Valores da Coluna 2',
+                        label: 'Valores em Ordem Decrescente',
                         data: sortedValues,
                         backgroundColor: '#FF5722',
-                        borderColor: '#E64A19',
+                        borderColor: '#D32F2F',
                         borderWidth: 1,
                     }]
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Valores da Coluna 2 (Ordenados)'
-                        }
-                    },
                     scales: {
                         x: {
-                            title: {
-                                display: true,
-                                text: 'Índice'
-                            }
+                            beginAtZero: true
                         },
                         y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Valor'
-                            }
+                            beginAtZero: true
                         }
                     }
                 }

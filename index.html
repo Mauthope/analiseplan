@@ -185,7 +185,7 @@
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
             const hourlyCounts = Array.from({ length: 24 }, () => 0);
-            const uniqueDays = new Set();
+            const hourlyDays = Array.from({ length: 24 }, () => new Set());
 
             content.forEach(row => {
                 const value = row[1]; // Coluna 2
@@ -194,22 +194,22 @@
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
-                        uniqueDays.add(date.toISOString().split('T')[0]); // Adiciona a data única
                         if (hour >= startHour && hour <= endHour) {
                             hourlyCounts[hour]++;
+                            hourlyDays[hour].add(date.toDateString());  // Armazena o dia (evita contagens duplicadas por dia)
                         }
                     }
                 }
             });
 
-            const numDays = uniqueDays.size; // Número de dias únicos
             const hours = [];
             const averages = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    if (numDays > 0) {
-                        averages.push(hourlyCounts[hour] / numDays); // Média de contagem por dia
+                    const uniqueDays = hourlyDays[hour].size;  // Número de dias únicos para aquela hora
+                    if (uniqueDays > 0) {
+                        averages.push(hourlyCounts[hour] / uniqueDays);  // Média das contagens por hora
                     } else {
                         averages.push(0);
                     }
@@ -223,7 +223,7 @@
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Contagem Média por Hora',
+                        label: 'Contagem por Hora',
                         data: averages,
                         backgroundColor: '#2196F3',
                         borderColor: '#1976D2',
@@ -235,7 +235,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem Média de Ocorrências por Hora'
+                            text: 'Contagem de Ocorrências por Hora'
                         }
                     },
                     scales: {

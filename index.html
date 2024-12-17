@@ -184,32 +184,35 @@
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
-            const hourlyData = Array.from({ length: 24 }, () => ({ total: 0, days: new Set() }));
+            const hourlyCounts = Array.from({ length: 24 }, () => 0);
+            const uniqueDays = new Set();
 
             content.forEach(row => {
-                const value = parseFloat(row[1]);
+                const value = row[1]; // Coluna 2
                 const dateStr = row[2];
-                if (!isNaN(value) && dateStr) {
+                if (dateStr) {
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
+                        uniqueDays.add(date.toISOString().split('T')[0]); // Adiciona a data única
                         if (hour >= startHour && hour <= endHour) {
-                            hourlyData[hour].total += value;
-                            hourlyData[hour].days.add(date.toISOString().split('T')[0]); // Usando a data sem hora
+                            hourlyCounts[hour]++;
                         }
                     }
                 }
             });
 
+            const numDays = uniqueDays.size; // Número de dias únicos
             const hours = [];
             const averages = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    const daysCount = hourlyData[hour].days.size;
-                    const total = hourlyData[hour].total;
-                    // Arredondando para o inteiro superior
-                    averages.push(daysCount > 0 ? Math.ceil(total / daysCount) : 0);
+                    if (numDays > 0) {
+                        averages.push(hourlyCounts[hour] / numDays); // Média de contagem por dia
+                    } else {
+                        averages.push(0);
+                    }
                 }
             }
 
@@ -220,7 +223,7 @@
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Média de Dados por Hora',
+                        label: 'Contagem Média por Hora',
                         data: averages,
                         backgroundColor: '#2196F3',
                         borderColor: '#1976D2',
@@ -232,7 +235,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Média de Dados por Hora (dividido pelos dias e arredondado)'
+                            text: 'Contagem Média de Ocorrências por Hora'
                         }
                     },
                     scales: {
@@ -246,7 +249,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Média'
+                                text: 'Média de Contagem'
                             }
                         }
                     }

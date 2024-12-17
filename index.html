@@ -85,12 +85,19 @@
         }
 
         function createAverageChart(parsedData) {
-            const { content } = parsedData;
-            const hourlyData = {}; 
+            const { headers, content } = parsedData;
+            const dateColumnIndex = headers.findIndex(header => header.toLowerCase().includes('data'));
+            const valueColumnIndex = headers.findIndex(header => header.toLowerCase().includes('valor'));
+            const hourlyData = {};
+
+            if (dateColumnIndex === -1 || valueColumnIndex === -1) {
+                alert('Não foram encontradas colunas de data/hora ou valores no CSV.');
+                return;
+            }
 
             content.forEach(row => {
-                const dateStr = row[2]; 
-                const value = parseFloat(row[1]); 
+                const dateStr = row[dateColumnIndex];
+                const value = parseFloat(row[valueColumnIndex]);
                 if (!isNaN(value) && dateStr) {
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {

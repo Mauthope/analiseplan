@@ -40,18 +40,23 @@
             max-width: 100%;
             height: 400px;
         }
-        .summary {
+        #summary {
             margin-top: 1rem;
-            background-color: #f1f1f1;
             padding: 1rem;
-            border-radius: 8px;
+            background-color: #f1f1f1;
             width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .summary h3 {
-            margin-bottom: 0.5rem;
+        #summary h3 {
+            margin: 0;
         }
-        .summary div {
-            margin-bottom: 0.5rem;
+        #summary ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #summary li {
+            margin: 0.5rem 0;
         }
     </style>
 </head>
@@ -69,15 +74,14 @@
             <input type="time" id="endHour" value="23:59">
             <button id="filterButton">Filtrar Dados</button>
         </div>
-        
-        <!-- Resumo Estatístico -->
-        <div class="summary" id="summary">
-            <h3>Resumo Estatístico</h3>
-            <div id="std1-summary"></div>
-            <div id="std2-summary"></div>
-            <div id="std3-summary"></div>
+        <div id="summary">
+            <h3>Resumo dos Dados</h3>
+            <ul id="summaryList">
+                <li><strong>Desvio Padrão 1:</strong> Máxima: --, Mínima: --, Média: --</li>
+                <li><strong>Desvio Padrão 2:</strong> Máxima: --, Mínima: --, Média: --</li>
+                <li><strong>Desvio Padrão 3:</strong> Máxima: --, Mínima: --, Média: --</li>
+            </ul>
         </div>
-
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>
             <canvas id="averageChart"></canvas>
@@ -87,7 +91,6 @@
             <canvas id="orderedValuesChart"></canvas>
         </div>
     </main>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let globalData = [];
@@ -102,7 +105,7 @@
                         createAverageChart(globalData);
                         createCountChart(globalData);
                         createOrderedValuesChart(globalData);
-                        updateSummary(globalData);  // Atualiza o resumo de desvios padrão
+                        updateSummary(globalData);  // Atualiza o resumo com os desvios padrões
                     } else {
                         alert('Nenhum dado válido encontrado no arquivo CSV.');
                     }
@@ -116,7 +119,7 @@
                 createAverageChart(globalData);
                 createCountChart(globalData);
                 createOrderedValuesChart(globalData);
-                updateSummary(globalData);  // Atualiza o resumo de desvios padrão
+                updateSummary(globalData);  // Atualiza o resumo com os desvios padrões
             }
         });
 
@@ -140,62 +143,33 @@
             return Math.sqrt(variance);
         }
 
-        function filterDataByStandardDeviation(values, stdDevMultiplier) {
+        function filterDataByStandardDeviation(values, numDevs) {
             const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
             const stdDev = calculateStandardDeviation(values);
-            return values.filter(value => Math.abs(value - mean) <= stdDevMultiplier * stdDev);
+            return values.filter(value => Math.abs(value - mean) <= numDevs * stdDev);
         }
 
-        // Função para atualizar o resumo com os desvios padrões
         function updateSummary(parsedData) {
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-            
-            // Calcula as métricas para diferentes desvios padrões
-            const std1Values = filterDataByStandardDeviation(values, 1);
-            const std2Values = filterDataByStandardDeviation(values, 2);
-            const std3Values = filterDataByStandardDeviation(values, 3);
-            
-            const summary = {
-                1: calculateSummary(std1Values),
-                2: calculateSummary(std2Values),
-                3: calculateSummary(std3Values)
-            };
-            
-            // Atualiza o HTML com os resultados
-            document.getElementById('std1-summary').innerHTML = `
-                <strong>Desvio Padrão 1:</strong>
-                <ul>
-                    <li>Máxima: ${summary[1].max}</li>
-                    <li>Mínima: ${summary[1].min}</li>
-                    <li>Média: ${summary[1].mean}</li>
-                </ul>
-            `;
-            document.getElementById('std2-summary').innerHTML = `
-                <strong>Desvio Padrão 2:</strong>
-                <ul>
-                    <li>Máxima: ${summary[2].max}</li>
-                    <li>Mínima: ${summary[2].min}</li>
-                    <li>Média: ${summary[2].mean}</li>
-                </ul>
-            `;
-            document.getElementById('std3-summary').innerHTML = `
-                <strong>Desvio Padrão 3:</strong>
-                <ul>
-                    <li>Máxima: ${summary[3].max}</li>
-                    <li>Mínima: ${summary[3].min}</li>
-                    <li>Média: ${summary[3].mean}</li>
-                </ul>
-            `;
-        }
 
-        // Função para calcular as métricas (máxima, mínima, média)
-        function calculateSummary(values) {
-            if (values.length === 0) return { max: 0, min: 0, mean: 0 };
-            const max = Math.max(...values);
-            const min = Math.min(...values);
-            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-            return { max, min, mean };
+            // Calcula as estatísticas para desvios padrões 1, 2 e 3
+            const stats = [1, 2, 3].map(numDevs => {
+                const filteredValues = filterDataByStandardDeviation(values, numDevs);
+                const max = Math.max(...filteredValues);
+                const min = Math.min(...filteredValues);
+                const mean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length || 0;
+                return { max, min, mean };
+            });
+
+            const summaryList = document.getElementById('summaryList');
+            stats.forEach((stat, index) => {
+                const listItem = summaryList.children[index];
+                listItem.innerHTML = `
+                    <strong>Desvio Padrão ${index + 1}:</strong>
+                    Máxima: ${stat.max.toFixed(2)}, Mínima: ${stat.min.toFixed(2)}, Média: ${stat.mean.toFixed(2)}
+                `;
+            });
         }
 
         function createAverageChart(parsedData) {
@@ -219,19 +193,56 @@
                 }
             });
 
-            const averageData = hourlyData.map(data => data.count === 0 ? 0 : Math.ceil(data.total / data.count));
-            
+            const hours = [];
+            const averages = [];
+            for (let hour = 0; hour < 24; hour++) {
+                if (hour >= startHour && hour <= endHour) {
+                    hours.push(`${hour.toString().padStart(2, '0')}:00`);
+                    if (hourlyData[hour].count > 0) {
+                        averages.push(hourlyData[hour].total / hourlyData[hour].count);
+                    } else {
+                        averages.push(0);
+                    }
+                }
+            }
+
             const ctx = document.getElementById('averageChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
+            if (window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+                    labels: hours,
                     datasets: [{
                         label: 'Média de Dados por Hora',
-                        data: averageData,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        fill: false
+                        data: averages,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#388E3C',
+                        borderWidth: 1,
                     }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Média de Dados por Hora'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hora'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Média'
+                            },
+                            beginAtZero: true,
+                        }
+                    }
                 }
             });
         }
@@ -243,8 +254,9 @@
             const hourlyCount = Array.from({ length: 24 }, () => 0);
 
             content.forEach(row => {
+                const value = parseFloat(row[1]);
                 const dateStr = row[2];
-                if (dateStr) {
+                if (!isNaN(value) && dateStr) {
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
@@ -255,18 +267,52 @@
                 }
             });
 
+            const hours = [];
+            const counts = [];
+            for (let hour = 0; hour < 24; hour++) {
+                if (hour >= startHour && hour <= endHour) {
+                    hours.push(`${hour.toString().padStart(2, '0')}:00`);
+                    counts.push(hourlyCount[hour]);
+                }
+            }
+
             const ctx = document.getElementById('countChart').getContext('2d');
-            new Chart(ctx, {
+            if (window.countChart) window.countChart.destroy();
+            window.countChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+                    labels: hours,
                     datasets: [{
                         label: 'Contagem por Hora',
-                        data: hourlyCount,
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
+                        data: counts,
+                        backgroundColor: '#FF9800',
+                        borderColor: '#F57C00',
+                        borderWidth: 1,
                     }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Contagem por Hora'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hora'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Contagem'
+                            },
+                            beginAtZero: true,
+                        }
+                    }
                 }
             });
         }
@@ -274,20 +320,45 @@
         function createOrderedValuesChart(parsedData) {
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-            values.sort((a, b) => b - a); // Ordenando em ordem decrescente
+            values.sort((a, b) => b - a);
 
             const ctx = document.getElementById('orderedValuesChart').getContext('2d');
-            new Chart(ctx, {
+            if (window.orderedValuesChart) window.orderedValuesChart.destroy();
+            window.orderedValuesChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: values.map((val, idx) => `Valor ${idx + 1}`),
+                    labels: values.map((_, i) => `Valor ${i + 1}`),
                     datasets: [{
-                        label: 'Valores Ordenados',
+                        label: 'Valores em Ordem Decrescente',
                         data: values,
-                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        borderWidth: 1
+                        backgroundColor: '#2196F3',
+                        borderColor: '#1976D2',
+                        borderWidth: 1,
                     }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Valores em Ordem Decrescente'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Índice'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Valor'
+                            },
+                            beginAtZero: true,
+                        }
+                    }
                 }
             });
         }

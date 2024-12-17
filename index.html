@@ -155,6 +155,9 @@
                 }
             }
 
+            // Filtra os valores da média por desvio padrão
+            const filteredAverages = filterDataByStandardDeviation(averages);
+
             const ctx = document.getElementById('averageChart').getContext('2d');
             if (window.myChart) window.myChart.destroy();
             window.myChart = new Chart(ctx, {
@@ -163,7 +166,7 @@
                     labels: hours,
                     datasets: [{
                         label: 'Média de Dados por Hora',
-                        data: averages,
+                        data: filteredAverages,
                         backgroundColor: '#4CAF50',
                         borderColor: '#388E3C',
                         borderWidth: 1,
@@ -232,17 +235,20 @@
                 }
             }
 
+            // Filtra as contagens por desvio padrão
+            const filteredAverages = filterDataByStandardDeviation(averages);
+
             const ctx = document.getElementById('countChart').getContext('2d');
-            if (window.myCountChart) window.myCountChart.destroy();
-            window.myCountChart = new Chart(ctx, {
+            if (window.myChart2) window.myChart2.destroy();
+            window.myChart2 = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: hours,
                     datasets: [{
                         label: 'Contagem por Hora',
-                        data: averages,
-                        backgroundColor: '#2196F3',
-                        borderColor: '#1976D2',
+                        data: filteredAverages,
+                        backgroundColor: '#FF5733',
+                        borderColor: '#C44E2D',
                         borderWidth: 1,
                     }]
                 },
@@ -251,7 +257,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem de Ocorrências por Hora'
+                            text: 'Contagem por Hora'
                         }
                     },
                     scales: {
@@ -265,7 +271,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Média de Contagem'
+                                text: 'Contagem'
                             }
                         }
                     }
@@ -277,23 +283,20 @@
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
 
-            // Filtra os valores acima de 2 desvios padrões
-            const filteredValues = filterDataByStandardDeviation(values);
-
             // Ordena os valores em ordem decrescente
-            const sortedValues = filteredValues.sort((a, b) => b - a);
+            values.sort((a, b) => b - a);
 
             const ctx = document.getElementById('orderedValuesChart').getContext('2d');
-            if (window.myOrderedValuesChart) window.myOrderedValuesChart.destroy();
-            window.myOrderedValuesChart = new Chart(ctx, {
+            if (window.myChart3) window.myChart3.destroy();
+            window.myChart3 = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: sortedValues.map((_, index) => `Valor ${index + 1}`),
+                    labels: values.map((_, index) => `Valor ${index + 1}`),
                     datasets: [{
-                        label: 'Valores da Coluna 2',
-                        data: sortedValues,
-                        backgroundColor: '#FF5722',
-                        borderColor: '#E64A19',
+                        label: 'Valores Ordenados Decrescentemente',
+                        data: values,
+                        backgroundColor: '#2196F3',
+                        borderColor: '#1976D2',
                         borderWidth: 1,
                     }]
                 },
@@ -302,14 +305,14 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Valores da Coluna 2 (Ordenados)'
+                            text: 'Valores em Ordem Decrescente'
                         }
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Índice'
+                                text: 'Valores'
                             }
                         },
                         y: {

@@ -110,6 +110,7 @@
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
             const hourlyData = Array.from({ length: 24 }, () => ({ total: 0, count: 0 }));
+            const days = new Set();
 
             content.forEach(row => {
                 const value = parseFloat(row[1]);
@@ -121,6 +122,7 @@
                         if (hour >= startHour && hour <= endHour) {
                             hourlyData[hour].total += value;
                             hourlyData[hour].count += 1;
+                            days.add(date.toDateString()); // Armazena a data única
                         }
                     }
                 }
@@ -128,11 +130,14 @@
 
             const hours = [];
             const averages = [];
+            const numberOfDays = days.size;
+
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    if (hourlyData[hour].count > 0) {
-                        averages.push(hourlyData[hour].total / hourlyData[hour].count);
+                    // Calcula a média dividindo pelo número de dias
+                    if (hourlyData[hour].count > 0 && numberOfDays > 0) {
+                        averages.push(hourlyData[hour].total / (hourlyData[hour].count * numberOfDays));
                     } else {
                         averages.push(0);
                     }
@@ -185,6 +190,7 @@
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
             const hourlyCounts = Array.from({ length: 24 }, () => 0);
+            const days = new Set();
 
             content.forEach(row => {
                 const value = row[1]; // Coluna 2
@@ -195,6 +201,7 @@
                         const hour = date.getHours();
                         if (hour >= startHour && hour <= endHour) {
                             hourlyCounts[hour]++;
+                            days.add(date.toDateString()); // Armazena a data única
                         }
                     }
                 }
@@ -202,10 +209,13 @@
 
             const hours = [];
             const counts = [];
+            const numberOfDays = days.size;
+
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    counts.push(hourlyCounts[hour]);
+                    // Dividir a contagem pela quantidade de dias
+                    counts.push(hourlyCounts[hour] / numberOfDays);
                 }
             }
 

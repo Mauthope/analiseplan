@@ -61,6 +61,10 @@
             <canvas id="averageChart"></canvas>
             <h2>Contagem por Hora</h2>
             <canvas id="countChart"></canvas>
+            <h2>Valores da Coluna 2 (Decrescente)</h2>
+            <canvas id="valuesChart"></canvas>
+            <h2>Média dos Valores (Excluindo Valores Acima de 2 Desvios Padrões)</h2>
+            <canvas id="filteredAverageChart"></canvas>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -76,6 +80,8 @@
                     if (globalData.content.length > 0) {
                         createAverageChart(globalData);
                         createCountChart(globalData);
+                        createValuesChart(globalData);
+                        createFilteredAverageChart(globalData);
                     } else {
                         alert('Nenhum dado válido encontrado no arquivo CSV.');
                     }
@@ -88,6 +94,8 @@
             if (globalData.content) {
                 createAverageChart(globalData);
                 createCountChart(globalData);
+                createValuesChart(globalData);
+                createFilteredAverageChart(globalData);
             }
         });
 
@@ -250,6 +258,104 @@
                             title: {
                                 display: true,
                                 text: 'Média de Contagem'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createValuesChart(parsedData) {
+            const content = parsedData.content;
+            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
+            values.sort((a, b) => b - a); // Organiza os valores em ordem decrescente
+
+            const ctx = document.getElementById('valuesChart').getContext('2d');
+            if (window.myValuesChart) window.myValuesChart.destroy();
+            window.myValuesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: values.map((_, index) => `Valor ${index + 1}`),
+                    datasets: [{
+                        label: 'Valores da Coluna 2 (Decrescente)',
+                        data: values,
+                        backgroundColor: '#FF9800',
+                        borderColor: '#FB8C00',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Valores da Coluna 2 em Ordem Decrescente'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Índice'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Valor'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFilteredAverageChart(parsedData) {
+            const content = parsedData.content;
+            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
+            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
+            const stdDev = Math.sqrt(values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length);
+
+            // Filtrando os valores que estão acima de 2 desvios padrões
+            const filteredValues = values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
+
+            const filteredMean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length;
+
+            const ctx = document.getElementById('filteredAverageChart').getContext('2d');
+            if (window.myFilteredAverageChart) window.myFilteredAverageChart.destroy();
+            window.myFilteredAverageChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Média Excluindo Desvios Padrões'],
+                    datasets: [{
+                        label: 'Média (Excluindo Valores Acima de 2 Desvios Padrões)',
+                        data: [filteredMean],
+                        backgroundColor: '#8BC34A',
+                        borderColor: '#689F38',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Média Desconsiderando Valores Acima de 2 Desvios Padrões'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Média'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Valor'
                             }
                         }
                     }

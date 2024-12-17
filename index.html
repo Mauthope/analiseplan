@@ -40,10 +40,6 @@
             max-width: 100%;
             height: 400px;
         }
-        #summary {
-            margin-top: 1rem;
-            font-size: 1.2rem;
-        }
     </style>
 </head>
 <body>
@@ -54,22 +50,17 @@
         <div class="controls">
             <label for="fileInput">Carregar arquivo CSV:</label>
             <input type="file" id="fileInput" accept=".csv">
+            <label for="startHour">Hora Inicial:</label>
+            <input type="time" id="startHour" value="00:00">
+            <label for="endHour">Hora Final:</label>
+            <input type="time" id="endHour" value="23:59">
             <button id="filterButton">Filtrar Dados</button>
         </div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>
             <canvas id="averageChart"></canvas>
-        </div>
-        <div id="chartContainer2">
-            <h2>Média por Valor da Coluna 2</h2>
-            <canvas id="valueChart"></canvas>
-        </div>
-        <div id="summary">
-            <h3>Resumo dos Dados</h3>
-            <p>Máxima: <span id="maxValue"></span></p>
-            <p>Mínima: <span id="minValue"></span></p>
-            <p>Média: <span id="avgValue"></span></p>
-            <p>Desvio Padrão: <span id="stdDevValue"></span></p>
+            <h2>Contagem por Hora</h2>
+            <canvas id="countChart"></canvas>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -84,8 +75,7 @@
                     globalData = parseCSV(csvData);
                     if (globalData.content.length > 0) {
                         createAverageChart(globalData);
-                        createValueChart(globalData);
-                        updateSummary(globalData);
+                        createCountChart(globalData);
                     } else {
                         alert('Nenhum dado válido encontrado no arquivo CSV.');
                     }
@@ -97,8 +87,7 @@
         document.getElementById('filterButton').addEventListener('click', function() {
             if (globalData.content) {
                 createAverageChart(globalData);
-                createValueChart(globalData);
-                updateSummary(globalData);
+                createCountChart(globalData);
             }
         });
 
@@ -118,6 +107,8 @@
 
         function createAverageChart(parsedData) {
             const content = parsedData.content;
+            const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
+            const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
             const hourlyData = Array.from({ length: 24 }, () => ({ total: 0, count: 0 }));
 
             content.forEach(row => {
@@ -127,8 +118,10 @@
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
-                        hourlyData[hour].total += value;
-                        hourlyData[hour].count += 1;
+                        if (hour >= startHour && hour <= endHour) {
+                            hourlyData[hour].total += value;
+                            hourlyData[hour].count += 1;
+                        }
                     }
                 }
             });
@@ -136,11 +129,13 @@
             const hours = [];
             const averages = [];
             for (let hour = 0; hour < 24; hour++) {
-                hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                if (hourlyData[hour].count > 0) {
-                    averages.push(hourlyData[hour].total / hourlyData[hour].count);
-                } else {
-                    averages.push(0);
+                if (hour >= startHour && hour <= endHour) {
+                    hours.push(`${hour.toString().padStart(2, '0')}:00`);
+                    if (hourlyData[hour].count > 0) {
+                        averages.push(hourlyData[hour].total / hourlyData[hour].count);
+                    } else {
+                        averages.push(0);
+                    }
                 }
             }
 
@@ -185,69 +180,55 @@
             });
         }
 
-        function createValueChart(parsedData) {
+        function createCountChart(parsedData) {
             const content = parsedData.content;
-            const hourlyData = Array.from({ length: 24 }, () => ({}));
+            const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
+            const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
+            const hourlyCounts = Array.from({ length: 24 }, () => 0);
 
             content.forEach(row => {
-                const value = parseFloat(row[1]);
+                const value = row[1]; // Coluna 2
                 const dateStr = row[2];
-                const value2 = row[1];
-                if (!isNaN(value) && dateStr) {
+                if (dateStr) {
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
-                        if (!hourlyData[hour][value2]) hourlyData[hour][value2] = { total: 0, count: 0 };
-                        hourlyData[hour][value2].total += value;
-                        hourlyData[hour][value2].count += 1;
+                        if (hour >= startHour && hour <= endHour) {
+                            hourlyCounts[hour]++;
+                        }
                     }
                 }
             });
 
             const hours = [];
-            const dataSets = [];
-            const labels = [];
-
+            const counts = [];
             for (let hour = 0; hour < 24; hour++) {
-                hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                for (const value2 in hourlyData[hour]) {
-                    if (!labels.includes(value2)) labels.push(value2);
+                if (hour >= startHour && hour <= endHour) {
+                    hours.push(`${hour.toString().padStart(2, '0')}:00`);
+                    counts.push(hourlyCounts[hour]);
                 }
             }
 
-            labels.forEach(value2 => {
-                const averages = [];
-                hours.forEach(hour => {
-                    const hourIndex = parseInt(hour.split(':')[0]);
-                    if (hourlyData[hourIndex][value2]) {
-                        averages.push(hourlyData[hourIndex][value2].total / hourlyData[hourIndex][value2].count);
-                    } else {
-                        averages.push(0);
-                    }
-                });
-                dataSets.push({
-                    label: value2,
-                    data: averages,
-                    backgroundColor: getRandomColor(),
-                    borderColor: '#388E3C',
-                    borderWidth: 1,
-                });
-            });
-
-            const ctx = document.getElementById('valueChart').getContext('2d');
-            if (window.myChart2) window.myChart2.destroy();
-            window.myChart2 = new Chart(ctx, {
+            const ctx = document.getElementById('countChart').getContext('2d');
+            if (window.myCountChart) window.myCountChart.destroy();
+            window.myCountChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: hours,
-                    datasets: dataSets,
+                    datasets: [{
+                        label: 'Contagem por Hora',
+                        data: counts,
+                        backgroundColor: '#2196F3',
+                        borderColor: '#1976D2',
+                        borderWidth: 1,
+                    }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Média por Valor da Coluna 2'
+                            text: 'Contagem de Ocorrências por Hora'
                         }
                     },
                     scales: {
@@ -261,35 +242,12 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Média'
+                                text: 'Contagem'
                             }
                         }
                     }
                 }
             });
-        }
-
-        function getRandomColor() {
-            const letters = '0123456789ABCDEF';
-            let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
-            }
-            return color;
-        }
-
-        function updateSummary(parsedData) {
-            const values = parsedData.content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-            const maxValue = Math.max(...values);
-            const minValue = Math.min(...values);
-            const avgValue = values.reduce((sum, value) => sum + value, 0) / values.length;
-            const variance = values.reduce((sum, value) => sum + Math.pow(value - avgValue, 2), 0) / values.length;
-            const stdDevValue = Math.sqrt(variance);
-
-            document.getElementById('maxValue').textContent = maxValue.toFixed(2);
-            document.getElementById('minValue').textContent = minValue.toFixed(2);
-            document.getElementById('avgValue').textContent = avgValue.toFixed(2);
-            document.getElementById('stdDevValue').textContent = stdDevValue.toFixed(2);
         }
     </script>
 </body>

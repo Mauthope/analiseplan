@@ -40,6 +40,11 @@
             max-width: 100%;
             height: 400px;
         }
+        .summary {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -54,12 +59,12 @@
             <input type="time" id="startHour" value="00:00">
             <label for="endHour">Hora Final:</label>
             <input type="time" id="endHour" value="23:59">
-            <button id="filterButton">Filtrar Dados</button>
         </div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>
             <canvas id="averageChart"></canvas>
         </div>
+        <div id="summaryContainer" class="summary"></div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -72,18 +77,12 @@
                     const csvData = e.target.result;
                     globalData = parseCSV(csvData);
                     if (globalData.content.length > 0) {
-                        createAverageChart(globalData);
+                        createCharts(globalData);
                     } else {
                         alert('Nenhum dado válido encontrado no arquivo CSV.');
                     }
                 };
                 reader.readAsText(file);
-            }
-        });
-
-        document.getElementById('filterButton').addEventListener('click', function() {
-            if (globalData.content) {
-                createAverageChart(globalData);
             }
         });
 
@@ -101,11 +100,21 @@
             return new Date(year, month - 1, day, hours, minutes, seconds);
         }
 
-        function createAverageChart(parsedData) {
+        function calculateSummary(values) {
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            return { max, min, avg, stdDev };
+        }
+
+        function createCharts(parsedData) {
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
             const hourlyData = Array.from({ length: 24 }, () => ({ total: 0, count: 0 }));
+            const valueData = [];
 
             content.forEach(row => {
                 const value = parseFloat(row[1]);
@@ -117,6 +126,7 @@
                         if (hour >= startHour && hour <= endHour) {
                             hourlyData[hour].total += value;
                             hourlyData[hour].count += 1;
+                            valueData.push(value);  // For summary calculation
                         }
                     }
                 }
@@ -134,6 +144,14 @@
                     }
                 }
             }
+
+            const summary = calculateSummary(valueData);
+            document.getElementById('summaryContainer').innerHTML = `
+                Máximo: ${summary.max.toFixed(2)}<br>
+                Mínimo: ${summary.min.toFixed(2)}<br>
+                Média: ${summary.avg.toFixed(2)}<br>
+                Desvio Padrão: ${summary.stdDev.toFixed(2)}
+            `;
 
             const ctx = document.getElementById('averageChart').getContext('2d');
             if (window.myChart) window.myChart.destroy();

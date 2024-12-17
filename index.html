@@ -40,23 +40,16 @@
             max-width: 100%;
             height: 400px;
         }
-        #summary {
+        .statistics {
             margin-top: 1rem;
+            background-color: #e0f7fa;
             padding: 1rem;
-            background-color: #f1f1f1;
-            width: 100%;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            text-align: center;
         }
-        #summary h3 {
-            margin: 0;
-        }
-        #summary ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        #summary li {
-            margin: 0.5rem 0;
+        .statistics h3 {
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -74,14 +67,6 @@
             <input type="time" id="endHour" value="23:59">
             <button id="filterButton">Filtrar Dados</button>
         </div>
-        <div id="summary">
-            <h3>Resumo dos Dados</h3>
-            <ul id="summaryList">
-                <li><strong>Desvio Padrão 1:</strong> Máxima: --, Mínima: --, Média: --</li>
-                <li><strong>Desvio Padrão 2:</strong> Máxima: --, Mínima: --, Média: --</li>
-                <li><strong>Desvio Padrão 3:</strong> Máxima: --, Mínima: --, Média: --</li>
-            </ul>
-        </div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>
             <canvas id="averageChart"></canvas>
@@ -89,6 +74,12 @@
             <canvas id="countChart"></canvas>
             <h2>Valores em Ordem Decrescente</h2>
             <canvas id="orderedValuesChart"></canvas>
+        </div>
+        <div class="statistics" id="statisticsContainer">
+            <h3>Resumo Estatístico</h3>
+            <p><strong>Desvio Padrão 1:</strong> Máximo: <span id="std1Max"></span>, Mínimo: <span id="std1Min"></span>, Média: <span id="std1Avg"></span></p>
+            <p><strong>Desvio Padrão 2:</strong> Máximo: <span id="std2Max"></span>, Mínimo: <span id="std2Min"></span>, Média: <span id="std2Avg"></span></p>
+            <p><strong>Desvio Padrão 3:</strong> Máximo: <span id="std3Max"></span>, Mínimo: <span id="std3Min"></span>, Média: <span id="std3Avg"></span></p>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -105,7 +96,7 @@
                         createAverageChart(globalData);
                         createCountChart(globalData);
                         createOrderedValuesChart(globalData);
-                        updateSummary(globalData);  // Atualiza o resumo com os desvios padrões
+                        updateStatistics(globalData);
                     } else {
                         alert('Nenhum dado válido encontrado no arquivo CSV.');
                     }
@@ -119,7 +110,7 @@
                 createAverageChart(globalData);
                 createCountChart(globalData);
                 createOrderedValuesChart(globalData);
-                updateSummary(globalData);  // Atualiza o resumo com os desvios padrões
+                updateStatistics(globalData);
             }
         });
 
@@ -143,33 +134,43 @@
             return Math.sqrt(variance);
         }
 
-        function filterDataByStandardDeviation(values, numDevs) {
+        function filterDataByStandardDeviation(values, stdDevMultiple) {
             const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
             const stdDev = calculateStandardDeviation(values);
-            return values.filter(value => Math.abs(value - mean) <= numDevs * stdDev);
+            return values.filter(value => Math.abs(value - mean) <= stdDevMultiple * stdDev);
         }
 
-        function updateSummary(parsedData) {
+        function updateStatistics(parsedData) {
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
 
-            // Calcula as estatísticas para desvios padrões 1, 2 e 3
-            const stats = [1, 2, 3].map(numDevs => {
-                const filteredValues = filterDataByStandardDeviation(values, numDevs);
-                const max = Math.max(...filteredValues);
-                const min = Math.min(...filteredValues);
-                const mean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length || 0;
-                return { max, min, mean };
-            });
+            const std1Values = filterDataByStandardDeviation(values, 1);
+            const std2Values = filterDataByStandardDeviation(values, 2);
+            const std3Values = filterDataByStandardDeviation(values, 3);
 
-            const summaryList = document.getElementById('summaryList');
-            stats.forEach((stat, index) => {
-                const listItem = summaryList.children[index];
-                listItem.innerHTML = `
-                    <strong>Desvio Padrão ${index + 1}:</strong>
-                    Máxima: ${stat.max.toFixed(2)}, Mínima: ${stat.min.toFixed(2)}, Média: ${stat.mean.toFixed(2)}
-                `;
-            });
+            function calculateStats(values) {
+                return {
+                    max: Math.max(...values),
+                    min: Math.min(...values),
+                    avg: values.reduce((acc, val) => acc + val, 0) / values.length
+                };
+            }
+
+            const std1Stats = calculateStats(std1Values);
+            const std2Stats = calculateStats(std2Values);
+            const std3Stats = calculateStats(std3Values);
+
+            document.getElementById('std1Max').textContent = std1Stats.max.toFixed(2);
+            document.getElementById('std1Min').textContent = std1Stats.min.toFixed(2);
+            document.getElementById('std1Avg').textContent = std1Stats.avg.toFixed(2);
+
+            document.getElementById('std2Max').textContent = std2Stats.max.toFixed(2);
+            document.getElementById('std2Min').textContent = std2Stats.min.toFixed(2);
+            document.getElementById('std2Avg').textContent = std2Stats.avg.toFixed(2);
+
+            document.getElementById('std3Max').textContent = std3Stats.max.toFixed(2);
+            document.getElementById('std3Min').textContent = std3Stats.min.toFixed(2);
+            document.getElementById('std3Avg').textContent = std3Stats.avg.toFixed(2);
         }
 
         function createAverageChart(parsedData) {
@@ -236,11 +237,11 @@
                             }
                         },
                         y: {
+                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Média'
-                            },
-                            beginAtZero: true,
+                            }
                         }
                     }
                 }
@@ -251,86 +252,42 @@
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);
             const endHour = parseInt(document.getElementById('endHour').value.split(':')[0]);
-            const hourlyCount = Array.from({ length: 24 }, () => 0);
+            const hourlyCounts = Array.from({ length: 24 }, () => 0);
+            const hourlyDays = Array.from({ length: 24 }, () => new Set());
 
             content.forEach(row => {
-                const value = parseFloat(row[1]);
+                const value = row[1]; // Coluna 2
                 const dateStr = row[2];
-                if (!isNaN(value) && dateStr) {
+                if (dateStr) {
                     const date = parseCustomDate(dateStr);
                     if (date instanceof Date && !isNaN(date)) {
                         const hour = date.getHours();
                         if (hour >= startHour && hour <= endHour) {
-                            hourlyCount[hour] += 1;
+                            hourlyCounts[hour]++;
+                            hourlyDays[hour].add(date.toDateString());  // Armazena o dia (evita contagens duplicadas por dia)
                         }
                     }
                 }
             });
 
             const hours = [];
-            const counts = [];
+            const averages = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    counts.push(hourlyCount[hour]);
+                    averages.push(hourlyCounts[hour]);
                 }
             }
 
             const ctx = document.getElementById('countChart').getContext('2d');
-            if (window.countChart) window.countChart.destroy();
-            window.countChart = new Chart(ctx, {
+            if (window.myCountChart) window.myCountChart.destroy();
+            window.myCountChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Contagem por Hora',
-                        data: counts,
-                        backgroundColor: '#FF9800',
-                        borderColor: '#F57C00',
-                        borderWidth: 1,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Contagem por Hora'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Hora'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Contagem'
-                            },
-                            beginAtZero: true,
-                        }
-                    }
-                }
-            });
-        }
-
-        function createOrderedValuesChart(parsedData) {
-            const content = parsedData.content;
-            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-            values.sort((a, b) => b - a);
-
-            const ctx = document.getElementById('orderedValuesChart').getContext('2d');
-            if (window.orderedValuesChart) window.orderedValuesChart.destroy();
-            window.orderedValuesChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: values.map((_, i) => `Valor ${i + 1}`),
-                    datasets: [{
-                        label: 'Valores em Ordem Decrescente',
-                        data: values,
+                        label: 'Contagem de Valores por Hora',
+                        data: averages,
                         backgroundColor: '#2196F3',
                         borderColor: '#1976D2',
                         borderWidth: 1,
@@ -341,22 +298,67 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Valores em Ordem Decrescente'
+                            text: 'Contagem de Valores por Hora'
                         }
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Índice'
+                                text: 'Hora'
                             }
                         },
                         y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Contagem'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createOrderedValuesChart(parsedData) {
+            const content = parsedData.content;
+            const sortedValues = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value)).sort((a, b) => b - a);
+            
+            const ctx = document.getElementById('orderedValuesChart').getContext('2d');
+            if (window.myOrderedChart) window.myOrderedChart.destroy();
+            window.myOrderedChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedValues.map((value, index) => `Valor ${index + 1}`),
+                    datasets: [{
+                        label: 'Valores Ordenados',
+                        data: sortedValues,
+                        backgroundColor: '#FF5722',
+                        borderColor: '#D32F2F',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Valores Ordenados'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Valores'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Valor'
-                            },
-                            beginAtZero: true,
+                            }
                         }
                     }
                 }

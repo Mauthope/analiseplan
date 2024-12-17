@@ -126,22 +126,40 @@
             const stdDev = calculateStandardDeviation(values);
             return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
         }
-function updateStatistics(parsedData) {
-            const content = parsedData.content;
-            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
+function updateSummary(parsedData) {
+    const content = parsedData.content;
+    
+    // Calculando os desvios padrão e seus valores estatísticos
+    let std1 = content.map(row => parseFloat(row[2])).filter(value => !isNaN(value));
+    let std2 = content.map(row => parseFloat(row[3])).filter(value => !isNaN(value));
+    let std3 = content.map(row => parseFloat(row[4])).filter(value => !isNaN(value));
 
-            const stdDev1Values = filterDataByStandardDeviation(values);
-            const stdDev2Values = filterDataByStandardDeviation(stdDev1Values);
-            const stdDev3Values = filterDataByStandardDeviation(stdDev2Values);
+    // Função para calcular o valor máximo, mínimo e média
+    function calculateStats(values) {
+        if (values.length === 0) return { max: 0, min: 0, avg: 0 };
+        const max = Math.max(...values);
+        const min = Math.min(...values);
+        const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+        return { max, min, avg };
+    }
 
-            const stdDev1Stats = calculateStats(stdDev1Values);
-            const stdDev2Stats = calculateStats(stdDev2Values);
-            const stdDev3Stats = calculateStats(stdDev3Values);
+    const stats1 = calculateStats(std1);
+    const stats2 = calculateStats(std2);
+    const stats3 = calculateStats(std3);
 
-            document.getElementById('stdDev1').textContent = `Desvio Padrão 1: Máximo: ${stdDev1Stats.max}, Mínimo: ${stdDev1Stats.min}, Média: ${stdDev1Stats.mean}`;
-            document.getElementById('stdDev2').textContent = `Desvio Padrão 2: Máximo: ${stdDev2Stats.max}, Mínimo: ${stdDev2Stats.min}, Média: ${stdDev2Stats.mean}`;
-            document.getElementById('stdDev3').textContent = `Desvio Padrão 3: Máximo: ${stdDev3Stats.max}, Mínimo: ${stdDev3Stats.min}, Média: ${stdDev3Stats.mean}`;
-        }
+    // Atualizando o resumo na interface
+    document.getElementById('max1').textContent = `Máximo 1: ${stats1.max.toFixed(2)}`;
+    document.getElementById('min1').textContent = `Mínimo 1: ${stats1.min.toFixed(2)}`;
+    document.getElementById('avg1').textContent = `Média 1: ${stats1.avg.toFixed(2)}`;
+
+    document.getElementById('max2').textContent = `Máximo 2: ${stats2.max.toFixed(2)}`;
+    document.getElementById('min2').textContent = `Mínimo 2: ${stats2.min.toFixed(2)}`;
+    document.getElementById('avg2').textContent = `Média 2: ${stats2.avg.toFixed(2)}`;
+
+    document.getElementById('max3').textContent = `Máximo 3: ${stats3.max.toFixed(2)}`;
+    document.getElementById('min3').textContent = `Mínimo 3: ${stats3.min.toFixed(2)}`;
+    document.getElementById('avg3').textContent = `Média 3: ${stats3.avg.toFixed(2)}`;
+}
         function createAverageChart(parsedData) {
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);

@@ -81,13 +81,15 @@
             content.forEach(row => {
                 const dateStr = row[2]; // Coluna de data e hora (index 2)
                 const value = parseFloat(row[1]); // Coluna de valor (index 1)
-                if (!isNaN(value)) {
+                if (!isNaN(value) && dateStr) {
                     const hour = new Date(dateStr).getHours();
-                    if (!hourlyData[hour]) {
-                        hourlyData[hour] = { total: 0, count: 0 };
+                    if (!isNaN(hour)) {
+                        if (!hourlyData[hour]) {
+                            hourlyData[hour] = { total: 0, count: 0 };
+                        }
+                        hourlyData[hour].total += value;
+                        hourlyData[hour].count += 1;
                     }
-                    hourlyData[hour].total += value;
-                    hourlyData[hour].count += 1;
                 }
             });
 

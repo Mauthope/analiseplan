@@ -64,12 +64,6 @@
             <h2>Valores em Ordem Decrescente</h2>
             <canvas id="orderedValuesChart"></canvas>
         </div>
-        <div id="stats">
-            <h3>Resumo Estatístico dos Desvios Padrões</h3>
-            <p id="stdDev1">Desvio Padrão 1: Máximo: N/A, Mínimo: N/A, Média: N/A</p>
-            <p id="stdDev2">Desvio Padrão 2: Máximo: N/A, Mínimo: N/A, Média: N/A</p>
-            <p id="stdDev3">Desvio Padrão 3: Máximo: N/A, Mínimo: N/A, Média: N/A</p>
-        </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -126,29 +120,7 @@
             const stdDev = calculateStandardDeviation(values);
             return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
         }
-        function updateStatistics(parsedData) {
-            const content = parsedData.content;
-            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
 
-            const stdDev1Values = filterDataByStandardDeviation(values);
-            const stdDev2Values = filterDataByStandardDeviation(stdDev1Values);
-            const stdDev3Values = filterDataByStandardDeviation(stdDev2Values);
-
-            const stdDev1Stats = calculateStats(stdDev1Values);
-            const stdDev2Stats = calculateStats(stdDev2Values);
-            const stdDev3Stats = calculateStats(stdDev3Values);
-
-            document.getElementById('stdDev1').textContent = `Desvio Padrão 1: Máximo: ${stdDev1Stats.max}, Mínimo: ${stdDev1Stats.min}, Média: ${stdDev1Stats.mean}`;
-            document.getElementById('stdDev2').textContent = `Desvio Padrão 2: Máximo: ${stdDev2Stats.max}, Mínimo: ${stdDev2Stats.min}, Média: ${stdDev2Stats.mean}`;
-            document.getElementById('stdDev3').textContent = `Desvio Padrão 3: Máximo: ${stdDev3Stats.max}, Mínimo: ${stdDev3Stats.min}, Média: ${stdDev3Stats.mean}`;
-        }
-
-        function calculateStats(values) {
-            const max = Math.max(...values);
-            const min = Math.min(...values);
-            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-            return { max, min, mean };
-        }
         function createAverageChart(parsedData) {
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);

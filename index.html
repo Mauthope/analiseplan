@@ -209,7 +209,7 @@
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
                     const uniqueDays = hourlyDays[hour].size;  // Número de dias únicos para aquela hora
                     if (uniqueDays > 0) {
-                        averages.push(hourlyCounts[hour] / uniqueDays);  // Média das contagens por hora
+                        averages.push(Math.ceil(hourlyCounts[hour] / uniqueDays));  // Média das contagens por hora, arredondada para cima
                     } else {
                         averages.push(0);
                     }

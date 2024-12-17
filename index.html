@@ -50,7 +50,11 @@
         <div class="controls">
             <label for="fileInput">Carregar arquivo CSV:</label>
             <input type="file" id="fileInput" accept=".csv">
-            
+            <label for="startHour">Hora Inicial:</label>
+            <input type="time" id="startHour" value="00:00">
+            <label for="endHour">Hora Final:</label>
+            <input type="time" id="endHour" value="23:59">
+            <button id="filterButton">Filtrar Dados</button>
         </div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>

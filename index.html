@@ -58,11 +58,7 @@
                 reader.onload = function(e) {
                     const csvData = e.target.result;
                     const parsedData = parseCSV(csvData);
-                    if (parsedData.content.length > 0) {
-                        createAverageChart(parsedData);
-                    } else {
-                        alert('Nenhum dado válido encontrado no arquivo CSV.');
-                    }
+                    createAverageChart(parsedData);
                 };
                 reader.readAsText(file);
             }
@@ -71,9 +67,7 @@
         function parseCSV(data) {
             const delimiter = data.includes(';') ? ';' : ',';
             const rows = data.split('\n').filter(row => row.trim() !== '');
-            const headers = rows[0].split(delimiter).map(header => header.trim());
-            const content = rows.slice(1).map(row => row.split(delimiter).map(cell => cell.trim()));
-            return { headers, content };
+            return rows.slice(1).map(row => row.split(delimiter).map(cell => cell.trim()));
         }
 
         function parseCustomDate(dateStr) {
@@ -84,43 +78,31 @@
             return new Date(year, month - 1, day, hours, minutes);
         }
 
-        function createAverageChart(parsedData) {
-            const { headers, content } = parsedData;
-            const dateColumnIndex = headers.findIndex(header => header.toLowerCase().includes('data'));
-            const valueColumnIndex = headers.findIndex(header => header.toLowerCase().includes('valor'));
+        function createAverageChart(content) {
             const hourlyData = {};
 
-            if (dateColumnIndex === -1 || valueColumnIndex === -1) {
-                alert('Não foram encontradas colunas de data/hora ou valores no CSV.');
-                return;
-            }
-
             content.forEach(row => {
-                const dateStr = row[dateColumnIndex];
-                const value = parseFloat(row[valueColumnIndex]);
-                if (!isNaN(value) && dateStr) {
-                    const date = parseCustomDate(dateStr);
-                    if (date instanceof Date && !isNaN(date)) {
-                        const hour = date.getHours();
-                        if (!hourlyData[hour]) {
-                            hourlyData[hour] = { total: 0, count: 0 };
-                        }
-                        hourlyData[hour].total += value;
-                        hourlyData[hour].count += 1;
+                const value = parseFloat(row[1]); // Coluna 2: valor
+                const dateStr = row[2]; // Coluna 3: data e hora
+                const date = parseCustomDate(dateStr);
+
+                if (!isNaN(value) && date instanceof Date && !isNaN(date)) {
+                    const hour = date.getHours();
+                    if (!hourlyData[hour]) {
+                        hourlyData[hour] = { total: 0, count: 0 };
                     }
+                    hourlyData[hour].total += value;
+                    hourlyData[hour].count += 1;
                 }
             });
 
             const hours = [];
             const averages = [];
             for (let hour = 0; hour < 24; hour++) {
-                if (hourlyData[hour]) {
-                    hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    averages.push(hourlyData[hour].total / hourlyData[hour].count);
-                } else {
-                    hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    averages.push(0);
-                }
+                hours.push(`${hour.toString().padStart(2, '0')}:00`);
+                averages.push(hourlyData[hour]
+                    ? hourlyData[hour].total / hourlyData[hour].count
+                    : 0);
             }
 
             const ctx = document.getElementById('averageChart').getContext('2d');

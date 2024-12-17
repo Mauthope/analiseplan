@@ -46,7 +46,7 @@
     <header>
         <h1>Desvio Padrão e Contagem</h1>
     </header>
-        <main>
+    <main>
         <div class="controls">
             <label for="fileInput">Carregar arquivo CSV:</label>
             <input type="file" id="fileInput" accept=".csv">
@@ -56,14 +56,6 @@
             <input type="time" id="endHour" value="23:59">
             <button id="filterButton">Filtrar Dados</button>
         </div>
-        <div id="summary">
-            <h3>Resumo dos Dados</h3>
-            <ul id="summaryList">
-                <li><strong>Desvio Padrão 1:</strong> Máxima: --, Mínima: --, Média: --</li>
-                <li><strong>Desvio Padrão 2:</strong> Máxima: --, Mínima: --, Média: --</li>
-                <li><strong>Desvio Padrão 3:</strong> Máxima: --, Mínima: --, Média: --</li>
-            </ul>
-        </div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>
             <canvas id="averageChart"></canvas>
@@ -72,6 +64,10 @@
             <h2>Valores em Ordem Decrescente</h2>
             <canvas id="orderedValuesChart"></canvas>
         </div>
+        <div id="summaryContainer">
+    <h2>Resumo das Estatísticas</h2>
+    <div id="summaryContent"></div>
+</div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -128,28 +124,59 @@
             const stdDev = calculateStandardDeviation(values);
             return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
         }
- function updateSummary(parsedData) {
-            const content = parsedData.content;
-            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
-
-            // Calcula as estatísticas para desvios padrões 1, 2 e 3
-            const stats = [1, 2, 3].map(numDevs => {
-                const filteredValues = filterDataByStandardDeviation(values, numDevs);
-                const max = Math.max(...filteredValues);
-                const min = Math.min(...filteredValues);
-                const mean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length || 0;
-                return { max, min, mean };
-            });
-
-            const summaryList = document.getElementById('summaryList');
-            stats.forEach((stat, index) => {
-                const listItem = summaryList.children[index];
-                listItem.innerHTML = `
-                    <strong>Desvio Padrão ${index + 1}:</strong>
-                    Máxima: ${stat.max.toFixed(2)}, Mínima: ${stat.min.toFixed(2)}, Média: ${stat.mean.toFixed(2)}
-                `;
-            });
+ function generateSummary(values) {
+        // Função para calcular a média, máxima e mínima
+        function calculateStatistics(data) {
+            const mean = data.reduce((acc, val) => acc + val, 0) / data.length;
+            const max = Math.max(...data);
+            const min = Math.min(...data);
+            return { mean, max, min };
         }
+
+        // Filtra os valores para desvios padrão 1, 2 e 3
+        const std1Values = filterDataByStandardDeviation(values, 1);
+        const std2Values = filterDataByStandardDeviation(values, 2);
+        const std3Values = filterDataByStandardDeviation(values, 3);
+
+        // Calcula as estatísticas para cada filtro
+        const std1Stats = calculateStatistics(std1Values);
+        const std2Stats = calculateStatistics(std2Values);
+        const std3Stats = calculateStatistics(std3Values);
+
+        // Exibe as estatísticas
+        const summaryContent = `
+            <h3>Desvio Padrão 1</h3>
+            <p>Máxima: ${std1Stats.max.toFixed(2)}</p>
+            <p>Mínima: ${std1Stats.min.toFixed(2)}</p>
+            <p>Média: ${std1Stats.mean.toFixed(2)}</p>
+            <h3>Desvio Padrão 2</h3>
+            <p>Máxima: ${std2Stats.max.toFixed(2)}</p>
+            <p>Mínima: ${std2Stats.min.toFixed(2)}</p>
+            <p>Média: ${std2Stats.mean.toFixed(2)}</p>
+            <h3>Desvio Padrão 3</h3>
+            <p>Máxima: ${std3Stats.max.toFixed(2)}</p>
+            <p>Mínima: ${std3Stats.min.toFixed(2)}</p>
+            <p>Média: ${std3Stats.mean.toFixed(2)}</p>
+        `;
+
+        document.getElementById('summaryContent').innerHTML = summaryContent;
+    }
+
+    // Modificação na função filterDataByStandardDeviation para aceitar um parâmetro de desvio padrão
+    function filterDataByStandardDeviation(values, stdDevMultiplier) {
+        const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
+        const stdDev = calculateStandardDeviation(values);
+        return values.filter(value => Math.abs(value - mean) <= stdDevMultiplier * stdDev);
+    }
+
+    // Exemplo de uso com a coluna 2
+    const content = globalData.content;
+    const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
+    
+    // Gera o resumo ao carregar os dados
+    if (values.length > 0) {
+        generateSummary(values);
+    }
         function createAverageChart(parsedData) {
             const content = parsedData.content;
             const startHour = parseInt(document.getElementById('startHour').value.split(':')[0]);

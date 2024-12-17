@@ -208,7 +208,8 @@
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
                     const daysCount = hourlyData[hour].days.size;
                     const total = hourlyData[hour].total;
-                    averages.push(daysCount > 0 ? total / daysCount : 0); // Dividindo pelo número de dias únicos
+                    // Arredondando para o inteiro superior
+                    averages.push(daysCount > 0 ? Math.ceil(total / daysCount) : 0);
                 }
             }
 
@@ -231,7 +232,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Média de Dados por Hora (dividido pelos dias)'
+                            text: 'Média de Dados por Hora (dividido pelos dias e arredondado)'
                         }
                     },
                     scales: {

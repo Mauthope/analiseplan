@@ -118,7 +118,7 @@
         function filterDataByStandardDeviation(values) {
             const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
             const stdDev = calculateStandardDeviation(values);
-            return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
+            return values.filter(value => Math.abs(value - mean) <= 2.5 * stdDev);
         }
 
         function createAverageChart(parsedData) {

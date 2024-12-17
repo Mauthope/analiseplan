@@ -46,23 +46,23 @@
     <header>
         <h1>Desvio Padrão e Contagem</h1>
     </header>
-    <main>
+        <main>
         <div class="controls">
             <label for="fileInput">Carregar arquivo CSV:</label>
             <input type="file" id="fileInput" accept=".csv">
-             <div id="summary">
+            <label for="startHour">Hora Inicial:</label>
+            <input type="time" id="startHour" value="00:00">
+            <label for="endHour">Hora Final:</label>
+            <input type="time" id="endHour" value="23:59">
+            <button id="filterButton">Filtrar Dados</button>
+        </div>
+        <div id="summary">
             <h3>Resumo dos Dados</h3>
             <ul id="summaryList">
                 <li><strong>Desvio Padrão 1:</strong> Máxima: --, Mínima: --, Média: --</li>
                 <li><strong>Desvio Padrão 2:</strong> Máxima: --, Mínima: --, Média: --</li>
                 <li><strong>Desvio Padrão 3:</strong> Máxima: --, Mínima: --, Média: --</li>
             </ul>
-        </div>
-            <label for="startHour">Hora Inicial:</label>
-            <input type="time" id="startHour" value="00:00">
-            <label for="endHour">Hora Final:</label>
-            <input type="time" id="endHour" value="23:59">
-            <button id="filterButton">Filtrar Dados</button>
         </div>
         <div id="chartContainer">
             <h2>Média de Dados por Hora</h2>

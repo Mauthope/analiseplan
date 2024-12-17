@@ -40,16 +40,21 @@
             max-width: 100%;
             height: 400px;
         }
-        .statistics {
+        #stats {
             margin-top: 1rem;
-            background-color: #e0f7fa;
             padding: 1rem;
-            border-radius: 8px;
+            background-color: #e7f4e7;
+            border-radius: 5px;
             width: 100%;
-            text-align: center;
+            max-width: 800px;
         }
-        .statistics h3 {
-            margin-bottom: 1rem;
+        #stats h3 {
+            text-align: center;
+            color: #388E3C;
+        }
+        #stats p {
+            font-size: 1rem;
+            margin: 0.5rem 0;
         }
     </style>
 </head>
@@ -75,11 +80,11 @@
             <h2>Valores em Ordem Decrescente</h2>
             <canvas id="orderedValuesChart"></canvas>
         </div>
-        <div class="statistics" id="statisticsContainer">
-            <h3>Resumo Estatístico</h3>
-            <p><strong>Desvio Padrão 1:</strong> Máximo: <span id="std1Max"></span>, Mínimo: <span id="std1Min"></span>, Média: <span id="std1Avg"></span></p>
-            <p><strong>Desvio Padrão 2:</strong> Máximo: <span id="std2Max"></span>, Mínimo: <span id="std2Min"></span>, Média: <span id="std2Avg"></span></p>
-            <p><strong>Desvio Padrão 3:</strong> Máximo: <span id="std3Max"></span>, Mínimo: <span id="std3Min"></span>, Média: <span id="std3Avg"></span></p>
+        <div id="stats">
+            <h3>Resumo Estatístico dos Desvios Padrões</h3>
+            <p id="stdDev1">Desvio Padrão 1: Máximo: N/A, Mínimo: N/A, Média: N/A</p>
+            <p id="stdDev2">Desvio Padrão 2: Máximo: N/A, Mínimo: N/A, Média: N/A</p>
+            <p id="stdDev3">Desvio Padrão 3: Máximo: N/A, Mínimo: N/A, Média: N/A</p>
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -134,43 +139,34 @@
             return Math.sqrt(variance);
         }
 
-        function filterDataByStandardDeviation(values, stdDevMultiple) {
+        function filterDataByStandardDeviation(values) {
             const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
             const stdDev = calculateStandardDeviation(values);
-            return values.filter(value => Math.abs(value - mean) <= stdDevMultiple * stdDev);
+            return values.filter(value => Math.abs(value - mean) <= 2 * stdDev);
         }
 
         function updateStatistics(parsedData) {
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
 
-            const std1Values = filterDataByStandardDeviation(values, 1);
-            const std2Values = filterDataByStandardDeviation(values, 2);
-            const std3Values = filterDataByStandardDeviation(values, 3);
+            const stdDev1Values = filterDataByStandardDeviation(values);
+            const stdDev2Values = filterDataByStandardDeviation(stdDev1Values);
+            const stdDev3Values = filterDataByStandardDeviation(stdDev2Values);
 
-            function calculateStats(values) {
-                return {
-                    max: Math.max(...values),
-                    min: Math.min(...values),
-                    avg: values.reduce((acc, val) => acc + val, 0) / values.length
-                };
-            }
+            const stdDev1Stats = calculateStats(stdDev1Values);
+            const stdDev2Stats = calculateStats(stdDev2Values);
+            const stdDev3Stats = calculateStats(stdDev3Values);
 
-            const std1Stats = calculateStats(std1Values);
-            const std2Stats = calculateStats(std2Values);
-            const std3Stats = calculateStats(std3Values);
+            document.getElementById('stdDev1').textContent = `Desvio Padrão 1: Máximo: ${stdDev1Stats.max}, Mínimo: ${stdDev1Stats.min}, Média: ${stdDev1Stats.mean}`;
+            document.getElementById('stdDev2').textContent = `Desvio Padrão 2: Máximo: ${stdDev2Stats.max}, Mínimo: ${stdDev2Stats.min}, Média: ${stdDev2Stats.mean}`;
+            document.getElementById('stdDev3').textContent = `Desvio Padrão 3: Máximo: ${stdDev3Stats.max}, Mínimo: ${stdDev3Stats.min}, Média: ${stdDev3Stats.mean}`;
+        }
 
-            document.getElementById('std1Max').textContent = std1Stats.max.toFixed(2);
-            document.getElementById('std1Min').textContent = std1Stats.min.toFixed(2);
-            document.getElementById('std1Avg').textContent = std1Stats.avg.toFixed(2);
-
-            document.getElementById('std2Max').textContent = std2Stats.max.toFixed(2);
-            document.getElementById('std2Min').textContent = std2Stats.min.toFixed(2);
-            document.getElementById('std2Avg').textContent = std2Stats.avg.toFixed(2);
-
-            document.getElementById('std3Max').textContent = std3Stats.max.toFixed(2);
-            document.getElementById('std3Min').textContent = std3Stats.min.toFixed(2);
-            document.getElementById('std3Avg').textContent = std3Stats.avg.toFixed(2);
+        function calculateStats(values) {
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
+            return { max, min, mean };
         }
 
         function createAverageChart(parsedData) {
@@ -275,22 +271,28 @@
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= startHour && hour <= endHour) {
                     hours.push(`${hour.toString().padStart(2, '0')}:00`);
-                    averages.push(hourlyCounts[hour]);
+                    const uniqueDays = hourlyDays[hour].size;  // Número de dias únicos para aquela hora
+                    if (uniqueDays > 0) {
+                        averages.push(Math.ceil(hourlyCounts[hour] / uniqueDays));  // Média das contagens por hora, arredondada para cima
+                    } else {
+                        averages.push(0);
+                    }
                 }
             }
 
             const ctx = document.getElementById('countChart').getContext('2d');
-            if (window.myCountChart) window.myCountChart.destroy();
-            window.myCountChart = new Chart(ctx, {
-                type: 'bar',
+            if (window.myChart2) window.myChart2.destroy();
+            window.myChart2 = new Chart(ctx, {
+                type: 'line',
                 data: {
                     labels: hours,
                     datasets: [{
-                        label: 'Contagem de Valores por Hora',
+                        label: 'Contagem por Hora',
                         data: averages,
-                        backgroundColor: '#2196F3',
-                        borderColor: '#1976D2',
-                        borderWidth: 1,
+                        backgroundColor: '#FFEB3B',
+                        borderColor: '#FFC107',
+                        fill: false,
+                        borderWidth: 2
                     }]
                 },
                 options: {
@@ -298,7 +300,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Contagem de Valores por Hora'
+                            text: 'Contagem por Hora'
                         }
                     },
                     scales: {
@@ -309,7 +311,6 @@
                             }
                         },
                         y: {
-                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Contagem'
@@ -322,35 +323,36 @@
 
         function createOrderedValuesChart(parsedData) {
             const content = parsedData.content;
-            const sortedValues = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value)).sort((a, b) => b - a);
-            
+            const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value)).sort((a, b) => b - a);
+            const chartData = {
+                labels: values.map((_, index) => `Item ${index + 1}`),
+                datasets: [{
+                    label: 'Valores em Ordem Decrescente',
+                    data: values,
+                    backgroundColor: '#9C27B0',
+                    borderColor: '#8E24AA',
+                    borderWidth: 1,
+                }]
+            };
+
             const ctx = document.getElementById('orderedValuesChart').getContext('2d');
-            if (window.myOrderedChart) window.myOrderedChart.destroy();
-            window.myOrderedChart = new Chart(ctx, {
+            if (window.myChart3) window.myChart3.destroy();
+            window.myChart3 = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: sortedValues.map((value, index) => `Valor ${index + 1}`),
-                    datasets: [{
-                        label: 'Valores Ordenados',
-                        data: sortedValues,
-                        backgroundColor: '#FF5722',
-                        borderColor: '#D32F2F',
-                        borderWidth: 1,
-                    }]
-                },
+                data: chartData,
                 options: {
                     responsive: true,
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Valores Ordenados'
+                            text: 'Valores em Ordem Decrescente'
                         }
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Valores'
+                                text: 'Item'
                             }
                         },
                         y: {

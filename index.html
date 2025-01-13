@@ -135,16 +135,19 @@
             const content = parsedData.content;
             const values = content.map(row => parseFloat(row[1])).filter(value => !isNaN(value));
             
-            const max = Math.max(...values);
-            const min = Math.min(...values);
-            const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
+            // Excluindo valores acima de 2 desvios padrões
+            const filteredValues = filterDataByStandardDeviation(values);
+            
+            const max = Math.max(...filteredValues);
+            const min = Math.min(...filteredValues);
+            const mean = filteredValues.reduce((acc, val) => acc + val, 0) / filteredValues.length;
 
             const summaryElement = document.getElementById('summary');
             summaryElement.innerHTML = `
                 <p><strong>Resumo dos Dados:</strong></p>
                 <p>Máximo: ${max.toFixed(2)}</p>
                 <p>Mínimo: ${min.toFixed(2)}</p>
-                <p>Média: ${mean.toFixed(2)}</p>
+                <p>Média (sem valores acima de 2 desvios padrão): ${mean.toFixed(2)}</p>
             `;
         }
 
